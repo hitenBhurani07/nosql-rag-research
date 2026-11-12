@@ -47,6 +47,7 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
 ### Step 1: Initialize Runtime (Cells 0–11)
 1. Run Cell 4 (`Runtime setup and experiment controls`).
    - Default flags keep all expensive runs OFF:
+     - `RUN_SMOKE_TEST = True` (Database-independent pipeline test)
      - `RUN_CONNECTION_CHECKS = True`
      - `RUN_PILOT = False`
      - `RUN_FULL_MATRIX = False`
@@ -55,17 +56,20 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
      - `RUN_ML_TRAINING = False`
      - `RUN_SHAP = False`
 2. Run Cell 8 (`USE_GOOGLE_DRIVE = True`). Mounts Google Drive to `/content/drive/MyDrive/NoSQL_RAG_Research` for persistent storage across Colab restarts.
-3. Run Cell 10 to install package dependencies:
-   ```bash
-   !pip install -q redis pymongo cassandra-driver neo4j qdrant-client sentence-transformers beir shap streamlit
-   !pip install -q -e .
-   ```
+3. Run Cell 10 to securely bootstrap the repository and install dependencies:
+   - For public repositories: Clones automatically via HTTPS.
+   - For private repositories: Reads `GITHUB_TOKEN` from Colab Secrets and uses an ephemeral `GIT_ASKPASS` helper (never prints or saves tokens).
+   - Installs package using PEP 621 extras: `pip install -q -e ".[all]"`.
 
 ### Step 2: Secret & Connection Verification (Cells 12–21)
 1. Run Cell 13. Verifies that `db_config = DatabaseConfig.from_env()` detects your secrets. Displays a safe status table (`configured: True/False`).
 2. Run Cell 21. Tests live network handshakes to all 5 database endpoints.
    - **Verification Gate:** **All 5 databases must report `connected: True` before proceeding.**
    - If any database reports `connected: False`, inspect the reported exception (e.g., DNS error, authentication failure, TLS failure) and correct the secret.
+
+### Step 3: Run Database-Independent Smoke Test (Cells 22–23)
+- Run Cell 23 (`RUN_SMOKE_TEST = True`).
+- Offline gate: Tests CLI help invocation, experiment configuration loading, synthetic demo data generation (`data_provenance=synthetic_demo`), and dataset validator without requiring any live database connections.
 
 ### Step 3: Run Pre-Flight Pilot Benchmark (Cells 22–27)
 1. In Cell 4, set `RUN_PILOT = True`.
