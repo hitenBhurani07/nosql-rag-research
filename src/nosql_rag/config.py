@@ -86,21 +86,35 @@ class DatabaseConfig(BaseModel):
     Credentials are never serialized into logs or repr outputs.
     """
 
+    # Redis (Key-Value)
     redis_url: str | None = None
+
+    # MongoDB (Document)
     mongodb_uri: str | None = None
     mongodb_database: str = "nosql_rag_research"
+
+    # Apache Cassandra / DataStax Astra (Wide-Column)
+    cassandra_mode: str = "standard"  # 'standard' or 'astra'
     cassandra_hosts: str | None = None
     cassandra_port: int = 9042
     cassandra_username: str | None = None
     cassandra_password: str | None = None
     cassandra_keyspace: str | None = None
     cassandra_ssl: bool = False
+    cassandra_secure_connect_bundle_path: str | None = None
+    cassandra_application_token: str | None = None
+
+    # Neo4j (Graph)
     neo4j_uri: str | None = None
     neo4j_username: str | None = None
     neo4j_password: str | None = None
     neo4j_database: str = "neo4j"
+
+    # Qdrant (Vector)
     qdrant_url: str | None = None
     qdrant_api_key: str | None = None
+
+    # Hosting & Deployment Telemetry
     hosting_region: str = "local"
     deployment_notes: str = "unspecified"
 
@@ -113,17 +127,27 @@ class DatabaseConfig(BaseModel):
             load_dotenv(override=False)
 
         port_raw = _get_secret("CASSANDRA_PORT", "9042") or "9042"
+        cassandra_mode = (_get_secret("CASSANDRA_MODE", "standard") or "standard").lower().strip()
+        bundle_path = _get_secret("CASSANDRA_SECURE_CONNECT_BUNDLE_PATH")
+        app_token = _get_secret("CASSANDRA_APPLICATION_TOKEN") or _get_secret("ASTRA_DB_APPLICATION_TOKEN")
+        # Auto-detect astra mode if bundle path or token is present
+        if bundle_path or app_token:
+            cassandra_mode = "astra"
+
         return cls(
             redis_url=_get_secret("REDIS_URL"),
             mongodb_uri=_get_secret("MONGODB_URI"),
             mongodb_database=_get_secret("MONGODB_DATABASE", "nosql_rag_research")
             or "nosql_rag_research",
+            cassandra_mode=cassandra_mode,
             cassandra_hosts=_get_secret("CASSANDRA_HOSTS"),
             cassandra_port=int(port_raw),
             cassandra_username=_get_secret("CASSANDRA_USERNAME"),
             cassandra_password=_get_secret("CASSANDRA_PASSWORD"),
             cassandra_keyspace=_get_secret("CASSANDRA_KEYSPACE"),
             cassandra_ssl=_parse_bool(_get_secret("CASSANDRA_SSL", "false")),
+            cassandra_secure_connect_bundle_path=bundle_path,
+            cassandra_application_token=app_token,
             neo4j_uri=_get_secret("NEO4J_URI"),
             neo4j_username=_get_secret("NEO4J_USERNAME"),
             neo4j_password=_get_secret("NEO4J_PASSWORD"),
@@ -137,6 +161,16 @@ class DatabaseConfig(BaseModel):
 
     def safe_status(self) -> list[dict[str, Any]]:
         """Return non-sensitive configuration presence flags."""
+        is_cassandra_configured = False
+        if self.cassandra_mode == "astra":
+            is_cassandra_configured = bool(
+                self.cassandra_secure_connect_bundle_path
+                and self.cassandra_application_token
+                and self.cassandra_keyspace
+            )
+        else:
+            is_cassandra_configured = bool(self.cassandra_hosts and self.cassandra_keyspace)
+
         return [
             {"database": "Redis", "setting": "redis_url", "configured": bool(self.redis_url)},
             {
@@ -146,8 +180,8 @@ class DatabaseConfig(BaseModel):
             },
             {
                 "database": "Cassandra",
-                "setting": "cassandra_hosts_and_keyspace",
-                "configured": bool(self.cassandra_hosts and self.cassandra_keyspace),
+                "setting": f"mode={self.cassandra_mode}",
+                "configured": is_cassandra_configured,
             },
             {
                 "database": "Neo4j",

@@ -25,6 +25,10 @@ htmlcov/
 docs/source/*
 !docs/source/.gitkeep
 
+# DataStax Astra DB Secure Connect Bundles
+*.zip
+!data/sample/*.zip
+
 # Local datasets and generated experiment outputs
 data/raw/*
 !data/raw/.gitkeep

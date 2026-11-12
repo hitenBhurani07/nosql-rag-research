@@ -108,18 +108,21 @@ class MongoAdapter(BaseCRUDAdapter):
 
 
 class CassandraAdapter(BaseCRUDAdapter):
-    """Apache Cassandra wide-column adapter using cassandra-driver."""
+    """Apache Cassandra wide-column adapter supporting standard Cluster and DataStax Astra DB."""
 
     name = "Cassandra"
 
     def __init__(
         self,
-        hosts: str,
+        hosts: str | None = None,
         port: int = 9042,
         username: str | None = None,
         password: str | None = None,
         keyspace: str | None = None,
         use_ssl: bool = False,
+        mode: str = "standard",
+        secure_connect_bundle_path: str | None = None,
+        application_token: str | None = None,
     ) -> None:
         try:
             from cassandra.auth import PlainTextAuthProvider
@@ -127,21 +130,42 @@ class CassandraAdapter(BaseCRUDAdapter):
         except ImportError as exc:
             raise AdapterError("cassandra-driver is not installed in this runtime") from exc
 
-        if not hosts or not keyspace:
-            raise AdapterError("Cassandra requires CASSANDRA_HOSTS and CASSANDRA_KEYSPACE")
-
-        host_list = [h.strip() for h in hosts.split(",") if h.strip()]
-        auth = PlainTextAuthProvider(username=username, password=password) if username else None
-        ssl_context = ssl.create_default_context() if use_ssl else None
-        self.cluster = Cluster(
-            contact_points=host_list,
-            port=int(port),
-            auth_provider=auth,
-            ssl_context=ssl_context,
-            connect_timeout=10,
-        )
-        self.session = self.cluster.connect(keyspace)
+        self.mode = mode.lower().strip()
         self.keyspace = keyspace
+
+        if self.mode == "astra":
+            if not secure_connect_bundle_path or not keyspace:
+                raise AdapterError(
+                    "Astra mode requires CASSANDRA_SECURE_CONNECT_BUNDLE_PATH and CASSANDRA_KEYSPACE"
+                )
+            if not application_token:
+                raise AdapterError(
+                    "Astra mode requires CASSANDRA_APPLICATION_TOKEN (AstraCS:...)"
+                )
+            # Astra tokens use client ID 'token' and password = token
+            auth = PlainTextAuthProvider("token", application_token)
+            cloud_config = {"secure_connect_bundle": secure_connect_bundle_path}
+            self.cluster = Cluster(
+                cloud=cloud_config,
+                auth_provider=auth,
+                connect_timeout=15,
+            )
+        else:
+            if not hosts or not keyspace:
+                raise AdapterError("Standard Cassandra requires CASSANDRA_HOSTS and CASSANDRA_KEYSPACE")
+
+            host_list = [h.strip() for h in hosts.split(",") if h.strip()]
+            auth = PlainTextAuthProvider(username=username, password=password) if username else None
+            ssl_context = ssl.create_default_context() if use_ssl else None
+            self.cluster = Cluster(
+                contact_points=host_list,
+                port=int(port),
+                auth_provider=auth,
+                ssl_context=ssl_context,
+                connect_timeout=10,
+            )
+
+        self.session = self.cluster.connect(keyspace)
         self.prepared: dict[str, dict[str, Any]] = {}
 
     def check(self) -> bool:
@@ -150,7 +174,12 @@ class CassandraAdapter(BaseCRUDAdapter):
         return row is not None
 
     def metadata(self) -> dict[str, Any]:
-        return {"database": self.name, "version": self.version, "model": "wide_column"}
+        return {
+            "database": self.name,
+            "version": self.version,
+            "model": "wide_column",
+            "connection_mode": self.mode,
+        }
 
     def _table(self, run_id: str) -> str:
         return safe_identifier(f"bench_{run_id}")
@@ -301,9 +330,26 @@ def build_crud_adapter(database_name: str, config: DatabaseConfig) -> BaseCRUDAd
             raise AdapterError("MONGODB_URI is not configured")
         return MongoAdapter(config.mongodb_uri, config.mongodb_database)
     if database_name == "Cassandra":
+        if config.cassandra_mode == "astra":
+            if not config.cassandra_secure_connect_bundle_path or not config.cassandra_keyspace:
+                raise AdapterError(
+                    "Astra mode requires CASSANDRA_SECURE_CONNECT_BUNDLE_PATH and CASSANDRA_KEYSPACE"
+                )
+            if not config.cassandra_application_token:
+                raise AdapterError(
+                    "Astra mode requires CASSANDRA_APPLICATION_TOKEN (AstraCS:...)"
+                )
+            return CassandraAdapter(
+                mode="astra",
+                keyspace=config.cassandra_keyspace,
+                secure_connect_bundle_path=config.cassandra_secure_connect_bundle_path,
+                application_token=config.cassandra_application_token,
+            )
+
         if not config.cassandra_hosts or not config.cassandra_keyspace:
-            raise AdapterError("CASSANDRA_HOSTS and CASSANDRA_KEYSPACE are required")
+            raise AdapterError("Standard Cassandra requires CASSANDRA_HOSTS and CASSANDRA_KEYSPACE")
         return CassandraAdapter(
+            mode="standard",
             hosts=config.cassandra_hosts,
             port=config.cassandra_port,
             username=config.cassandra_username,

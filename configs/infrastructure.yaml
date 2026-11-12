@@ -1,0 +1,44 @@
+# Central Infrastructure and Deployment Configuration for nosql-rag-research
+# Controls deployment modes, timeout limits, and provider tier metadata.
+
+deployment_mode: mode_a_free_tier  # 'mode_a_free_tier' or 'mode_b_controlled_host'
+
+hosting_providers:
+  redis:
+    provider: Redis Cloud
+    tier: Free Plan (30MB)
+    max_throughput_ops_sec: 100
+    max_connections: 30
+    timeout_seconds: 15
+
+  mongodb:
+    provider: MongoDB Atlas
+    tier: M0 Free Cluster (512MB)
+    max_connections: 500
+    timeout_seconds: 20
+
+  cassandra:
+    provider: DataStax Astra DB Serverless
+    tier: Free Tier Credits ($25/mo)
+    mode: astra
+    timeout_seconds: 25
+
+  neo4j:
+    provider: Neo4j AuraDB
+    tier: AuraDB Free (200k nodes)
+    timeout_seconds: 25
+    auto_pause_days: 3
+
+  qdrant:
+    provider: Qdrant Cloud
+    tier: 1GB RAM / 4GB SSD Free Cluster
+    timeout_seconds: 30
+    auto_pause_days: 7
+
+controlled_host:
+  target_os: Linux (Ubuntu 22.04 LTS or Oracle Linux 9)
+  recommended_ram_gb: 16
+  min_ram_gb: 12
+  co_located_client: true
+  sequential_execution: true
+  drop_page_caches_between_runs: true

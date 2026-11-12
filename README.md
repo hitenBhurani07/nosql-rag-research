@@ -36,7 +36,8 @@ NoSQL store selection has historically relied on qualitative rules of thumb or v
 ```text
 nosql-rag-research/
 ├── configs/
-│   └── experiment.yaml             # Central reproducible experiment configuration
+│   ├── experiment.yaml             # Central reproducible experiment configuration
+│   └── infrastructure.yaml         # Cloud provider quotas, timeouts & deployment modes
 ├── docs/
 │   ├── architecture.md             # System architecture & Mermaid pipeline diagram
 │   ├── colab_execution_guide.md    # Step-by-step Colab runbook & secrets guide
@@ -45,14 +46,17 @@ nosql-rag-research/
 │   ├── implementation_status.md    # Live phase tracker
 │   ├── known_limitations.md        # Scientific and hardware limitations
 │   ├── research_requirements.md    # Requirements extracted from research brief
+│   ├── infrastructure/             # Cloud infrastructure guides (Redis, Mongo, Astra, Neo4j, Qdrant)
 │   └── methodology/
 │       ├── database_comparability.md # Two-stage recommendation methodology
 │       └── data_collection_protocol.md # Strict provenance & validation protocol
 ├── notebooks/
 │   └── NoSQL_RAG_Implementation_Colab.ipynb # Refactored Colab execution notebook
+├── scripts/
+│   └── database_preflight.py       # Independent multi-database health check script
 ├── src/
 │   └── nosql_rag/                  # Consolidated Python package
-│       ├── adapters/               # Native DB adapters (Redis, Mongo, Cassandra, Neo4j, Qdrant)
+│       ├── adapters/               # Native DB adapters (Redis, Mongo, Cassandra/Astra, Neo4j, Qdrant)
 │       ├── benchmarking/           # Controlled benchmark harness & matrix runner
 │       ├── dashboard/              # Streamlit interactive recommendation dashboard
 │       ├── data/                   # Schemas, integrity validator, persistence & demo generator
@@ -65,7 +69,7 @@ nosql-rag-research/
 │       ├── cli.py                  # CLI entry point (nosql-rag)
 │       └── config.py               # Pydantic configuration & safe secret handler
 ├── tests/
-│   ├── unit/                       # 17 fast unit tests covering all modules
+│   ├── unit/                       # 24 unit tests covering all modules & dual-mode adapters
 │   └── integration/                # Marked integration tests requiring live databases
 ├── .env.example                    # Template for database credentials (never commit .env)
 ├── .gitignore                      # Excludes credentials, caches, raw/processed data, models
