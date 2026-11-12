@@ -1,0 +1,52 @@
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Testing and formatting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Raw research briefs and unpublished source documents
+docs/source/*
+!docs/source/.gitkeep
+
+# Local datasets and generated experiment outputs
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+results/*
+!results/benchmarks/
+!results/models/
+!results/figures/
+results/benchmarks/*
+!results/benchmarks/.gitkeep
+results/models/*
+!results/models/.gitkeep
+results/figures/*
+!results/figures/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

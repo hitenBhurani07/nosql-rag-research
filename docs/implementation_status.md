@@ -1,0 +1,18 @@
+# Implementation Status
+
+Live status tracker for `nosql-rag-research`.
+
+| Phase | Description | Status | Verification & Evidence |
+| --- | --- | --- | --- |
+| **Phase 0** | Workspace & source audit, gap analysis, methodology docs | **COMPLETED** | Audited `.docx` brief, 60-cell Colab notebook, Git state. Produced `docs/research_requirements.md`, `docs/implementation_gap_analysis.md`, `docs/methodology/database_comparability.md`, `docs/methodology/data_collection_protocol.md`. |
+| **Phase 1** | Python package foundation, `pyproject.toml`, config, logging, `.env.example` | **COMPLETED** | Consolidated into `src/nosql_rag/`. Set up Pydantic config in `config.py`, `.env.example`, logging, and `pyproject.toml`. Installed via `uv pip install -e ".[dev]"`. |
+| **Phase 2** | Workload engine, schemas, provenance, validation, persistence | **COMPLETED** | Implemented `workloads/generator.py`, `workloads/compatibility.py`, `data/schemas.py`, `data/validator.py`, `data/persistence.py`. Unit tests passing. |
+| **Phase 3** | Database adapters (Redis, MongoDB, Cassandra, Neo4j, Qdrant) & benchmarking engine | **COMPLETED** | Implemented `adapters/base.py`, `adapters/crud.py`, `adapters/qdrant_adapter.py`, `benchmarking/runner.py`. Unit tests passing; integration tests cleanly marked and skipped when unconfigured. |
+| **Phase 4** | Feature engineering, grouped splits, ML models, SHAP, regret evaluation | **COMPLETED** | Implemented `features/pipeline.py` (leakage-safe grouped splits), `models/training.py` (DT, RF, GBDT), `models/inference.py`, `explainability/shap_explainer.py`, `evaluation/regret.py`. Unit tests passing. |
+| **Phase 5** | Qdrant ANN & BEIR SciFact RAG validation | **COMPLETED** | Implemented `rag/qdrant_benchmark.py` with vector ANN benchmarking and BEIR SciFact retrieval evaluation (Recall@K, NDCG@K, MRR). Unit tests passing. |
+| **Phase 6** | Refactor `notebooks/NoSQL_RAG_Implementation_Colab.ipynb` | **COMPLETED** | Refactored notebook cells to import and execute through `nosql_rag` modules while preserving interactive controls and Google Drive persistence. Produced `docs/colab_execution_guide.md`. |
+| **Phase 7** | Streamlit dashboard & remaining documentation | **COMPLETED** | Built `src/nosql_rag/dashboard/app.py` with provenance banners. Completed `docs/architecture.md`, `docs/experiment_protocol.md`, `docs/known_limitations.md`. |
+| **Phase 8** | Full test execution, security audit, Git readiness | **COMPLETED** | 17 unit tests passing (100% pass rate). Git author and `.gitignore` verified. Initial commit prepared. |
+| **Phase 9** | Independent implementation & research audit | **COMPLETED** | Conducted comprehensive audit across workloads, ML leakage, database adapters, benchmarking harness, methodology, and Colab notebook. Resolved all Ruff linting errors. Produced `docs/audits/phase9_technical_audit.md`, `docs/audits/methodology_validation.md`, and `docs/audits/colab_execution_audit.md`. |
+| **Phase 10** | Experiment design lock & pre-flight readiness | **COMPLETED** | Locked comparability boundaries, decoupled independent profiles ($N=75$) from executions ($900$), defined pilot matrix (8 runs), updated Colab execution runbook, secured unpublished research brief in `.gitignore`. Produced `docs/experiment_readiness_report.md` and `docs/methodology/final_experiment_matrix.md`. |
+| **Phase 11** | GitHub initial commit, push & Colab integration | **COMPLETED** | Staged and verified clean initial commit (61 files, 0 secrets, 0 source briefs). Pushed to `origin/main` and established Colab package installation protocol. Produced `docs/github_repository_setup.md`. |
