@@ -142,8 +142,9 @@ class DatabaseConfig(BaseModel):
         if proto_raw and proto_raw.strip().isdigit():
             cassandra_protocol_version = int(proto_raw.strip())
         elif cassandra_mode == "astra":
-            # Default to protocol version 5 for Astra DB to avoid driver downgrade warnings
-            cassandra_protocol_version = 5
+            # Default to protocol version 4 for Astra DB to match Astra serverless endpoint negotiation
+            # and eliminate protocol downgrade warnings (downgrades from 66 -> 65 -> 5 -> 4).
+            cassandra_protocol_version = 4
 
         return cls(
             redis_url=_get_secret("REDIS_URL"),

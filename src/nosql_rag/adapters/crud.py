@@ -158,9 +158,9 @@ class CassandraAdapter(BaseCRUDAdapter):
             # Astra tokens use client ID 'token' and password = token
             auth = PlainTextAuthProvider("token", application_token)
             cloud_config = {"secure_connect_bundle": secure_connect_bundle_path}
-            # Astra DB supports native CQL protocol version 5 (or 4).
-            # Defaulting to 5 prevents driver downgrading warnings from protocol 6.
-            selected_protocol = protocol_version if protocol_version is not None else 5
+            # Astra DB Serverless supports native CQL protocol version 4.
+            # Defaulting to 4 prevents driver downgrade warnings from protocol 66/65/5.
+            selected_protocol = protocol_version if protocol_version is not None else 4
             self.cluster = Cluster(
                 cloud=cloud_config,
                 auth_provider=auth,

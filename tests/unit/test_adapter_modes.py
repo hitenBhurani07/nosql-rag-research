@@ -49,7 +49,7 @@ def test_cassandra_adapter_astra_mode_mocked(tmp_path: Path) -> None:
         mock_cluster.assert_called_once()
         call_kwargs = mock_cluster.call_args[1]
         assert call_kwargs["cloud"] == {"secure_connect_bundle": str(fake_bundle)}
-        assert call_kwargs["protocol_version"] == 5
+        assert call_kwargs["protocol_version"] == 4
         mock_instance.connect.assert_called_once_with("test_ks")
 
 
