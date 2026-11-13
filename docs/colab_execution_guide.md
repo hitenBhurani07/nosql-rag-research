@@ -57,9 +57,12 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
      - `RUN_SHAP = False`
 2. Run Cell 8 (`USE_GOOGLE_DRIVE = True`). Mounts Google Drive to `/content/drive/MyDrive/NoSQL_RAG_Research` for persistent storage across Colab restarts.
 3. Run Cell 10 to securely bootstrap the repository and install dependencies:
-   - For public repositories: Clones automatically via HTTPS.
+   - If `/content/nosql-rag-research` does not exist, it clones freshly from `origin/main`.
+   - If it already exists, it executes `git fetch origin` followed by `git pull --ff-only origin main` to guarantee the latest code is active.
+   - Verifies and prints the checked-out commit SHA and latest commit log.
    - For private repositories: Reads `GITHUB_TOKEN` from Colab Secrets and uses an ephemeral `GIT_ASKPASS` helper (never prints or saves tokens).
-   - Installs package using: `pip install -q -e .`
+   - Installs package using editable mode: `pip install -q -e ".[all]"`.
+   - *Note on open notebooks:* A previously opened Colab browser tab will not auto-reload newly pushed `.ipynb` cell definitions. To load new cells, use **File -> Open notebook -> GitHub** to reload `NoSQL_RAG_Implementation_Colab.ipynb`, or refresh the browser.
 4. Run Cell 11 to import core Python packages.
 
 ### Step 2: Discover Colab Public IP for MongoDB Atlas Allowlisting (Cells 12–13)

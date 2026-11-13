@@ -33,7 +33,8 @@ RUN_SHAP = False
 ```
 
 ### Step 2: Bootstrap Package & Verify Submodules (Cells 10 & 11)
-- **Cell 10:** Clones the repository and installs the package via `pip install -q -e ".[all]"`.
+- **Cell 10:** Clones the repository if not present, or runs `git fetch origin` + `git pull --ff-only origin main` if already present, prints the checked-out commit SHA and log, and installs the package via `pip install -q -e ".[all]"`.
+  - *Note:* If Colab was already open when GitHub was updated, reload the notebook via **File -> Open notebook -> GitHub** to get updated cell definitions, or re-run Cell 10 to update the underlying code and package.
 - **Cell 11:** Verifies imports across all modules (`nosql_rag.adapters`, `nosql_rag.config`, etc.).
 
 ### Step 3: Discover Colab Public IP & Allowlist in Atlas (Cell 13)
