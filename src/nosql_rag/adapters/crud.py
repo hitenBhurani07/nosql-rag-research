@@ -5,9 +5,15 @@ from __future__ import annotations
 import json
 import ssl
 import time
+from pathlib import Path
 from typing import Any
 
-from nosql_rag.adapters.base import AdapterError, BaseCRUDAdapter, safe_identifier
+from nosql_rag.adapters.base import (
+    AdapterError,
+    BaseCRUDAdapter,
+    safe_identifier,
+    sanitize_error_message,
+)
 from nosql_rag.config import DatabaseConfig
 
 
@@ -141,6 +147,12 @@ class CassandraAdapter(BaseCRUDAdapter):
             if not application_token:
                 raise AdapterError(
                     "Astra mode requires CASSANDRA_APPLICATION_TOKEN (AstraCS:...)"
+                )
+            bundle_file = Path(secure_connect_bundle_path)
+            if not bundle_file.is_file():
+                raise AdapterError(
+                    f"Astra Secure Connect Bundle not found at '{secure_connect_bundle_path}'. "
+                    "Please upload and stage your bundle into /tmp/astra_scb/secure-connect-bundle.zip."
                 )
             # Astra tokens use client ID 'token' and password = token
             auth = PlainTextAuthProvider("token", application_token)
@@ -372,31 +384,58 @@ def build_crud_adapter(database_name: str, config: DatabaseConfig) -> BaseCRUDAd
 def check_crud_connections(
     config: DatabaseConfig, databases: tuple[str, ...] = ("Redis", "MongoDB", "Cassandra", "Neo4j")
 ) -> list[dict[str, Any]]:
-    """Verify live connectivity for each configured CRUD database without faking success."""
+    """Verify live connectivity for each configured CRUD database without faking success.
+
+    Unconfigured databases are safely reported as SKIPPED rather than failed.
+    Configured databases are tested against real endpoints.
+    Errors are sanitized to prevent credential leakage.
+    """
+    statuses = {item["database"]: item["configured"] for item in config.safe_status()}
     results: list[dict[str, Any]] = []
     for name in databases:
+        if not statuses.get(name, False):
+            results.append(
+                {
+                    "database": name,
+                    "status": "SKIPPED",
+                    "configured": False,
+                    "connected": False,
+                    "version": "unknown",
+                    "connect_check_ms": None,
+                    "error": f"{name} credentials are not configured in environment or Colab Secrets (skipped)",
+                }
+            )
+            continue
+
         adapter: BaseCRUDAdapter | None = None
         started = time.perf_counter()
         try:
             adapter = build_crud_adapter(name, config)
             ok = adapter.check()
+            elapsed_ms = round((time.perf_counter() - started) * 1000.0, 3)
             results.append(
                 {
                     "database": name,
+                    "status": "CONNECTED" if ok else "FAILED",
+                    "configured": True,
                     "connected": bool(ok),
-                    "version": adapter.version,
-                    "connect_check_ms": round((time.perf_counter() - started) * 1000, 3),
-                    "error": None,
+                    "version": getattr(adapter, "version", "unknown"),
+                    "connect_check_ms": elapsed_ms,
+                    "error": None if ok else "Adapter health-check returned False",
                 }
             )
         except Exception as exc:
+            elapsed_ms = round((time.perf_counter() - started) * 1000.0, 3)
+            sanitized_err = sanitize_error_message(f"{type(exc).__name__}: {str(exc)[:250]}")
             results.append(
                 {
                     "database": name,
+                    "status": "FAILED",
+                    "configured": True,
                     "connected": False,
                     "version": None,
-                    "connect_check_ms": round((time.perf_counter() - started) * 1000, 3),
-                    "error": f"{type(exc).__name__}: {str(exc)[:300]}",
+                    "connect_check_ms": elapsed_ms,
+                    "error": sanitized_err,
                 }
             )
         finally:

@@ -58,25 +58,41 @@ class QdrantAdapter(BaseAdapter):
 
 
 def check_qdrant_connection(config: DatabaseConfig) -> dict[str, Any]:
-    """Verify live connectivity to Qdrant."""
+    """Verify live connectivity to Qdrant without faking success.
+
+    If QDRANT_URL is not set, safely reports SKIPPED rather than failed.
+    """
+    if not config.qdrant_url:
+        return {
+            "database": "Qdrant",
+            "status": "SKIPPED",
+            "configured": False,
+            "connected": False,
+            "version": "unknown",
+            "connect_check_ms": None,
+            "error": "QDRANT_URL is not configured in environment or Colab Secrets (skipped)",
+        }
     started = time.perf_counter()
     adapter: QdrantAdapter | None = None
     try:
-        if not config.qdrant_url:
-            raise AdapterError("QDRANT_URL is not configured")
         adapter = QdrantAdapter(url=config.qdrant_url, api_key=config.qdrant_api_key, timeout=15)
         ok = adapter.check()
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 3)
         return {
             "database": "Qdrant",
+            "status": "CONNECTED" if ok else "FAILED",
+            "configured": True,
             "connected": bool(ok),
             "version": adapter.version,
-            "connect_check_ms": round((time.perf_counter() - started) * 1000, 3),
-            "error": None,
+            "connect_check_ms": elapsed_ms,
+            "error": None if ok else "Adapter health-check returned False",
         }
     except Exception as exc:
         sanitized_err = sanitize_error_message(f"{type(exc).__name__}: {str(exc)[:300]}")
         return {
             "database": "Qdrant",
+            "status": "FAILED",
+            "configured": True,
             "connected": False,
             "version": None,
             "connect_check_ms": round((time.perf_counter() - started) * 1000, 3),

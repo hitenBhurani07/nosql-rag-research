@@ -4,25 +4,48 @@ Step-by-step manual setup instructions for configuring live cloud database endpo
 
 ---
 
-## 1. Provider Account Registration (Zero Cost / No Credit Card Required)
+## 1. Actual Provisioned Endpoints (Active in Phase 13.1)
 
-Follow these official portals to register zero-cost free-tier accounts:
+Three live database services have been provisioned for the research environment:
 
-1. **Redis Cloud:** Sign up at [https://redis.io/try-free/](https://redis.io/try-free/). Create a free subscription (select 30 MB free database on AWS or GCP). Copy the connection URL (`redis://...` or `rediss://...`).
-2. **MongoDB Atlas:** Sign up at [https://www.mongodb.com/cloud/atlas/register](https://www.mongodb.com/cloud/atlas/register). Create an **M0 Free Cluster**.
-   - Create a dedicated database user with `readWrite` access to `nosql_rag_research`.
-   - In **Network Access**, add your current session IP (`<CURRENT_IP>/32`) with a 1-6 hour auto-expiry timer, or temporary access for testing.
-   - Copy the SRV connection URI.
-3. **DataStax Astra DB (Cassandra):** Sign up at [https://astra.datastax.com/register](https://astra.datastax.com/register).
-   - Create a **Serverless** database named `nosql_rag_research` with keyspace `nosql_rag_research`.
-   - In **Access Management**, generate an Application Token (role: Database Administrator).
-   - In **Connect $\to$ Python**, download the **Secure Connect Bundle (`.zip`)**. Do NOT extract it.
-4. **Neo4j AuraDB:** Sign up at [https://neo4j.com/cloud/platform/aura-graph-database/](https://neo4j.com/cloud/platform/aura-graph-database/).
-   - Create a **Free Instance**.
-   - Save the generated 32-character password and copy the connection URI (`neo4j+s://...`).
-5. **Qdrant Cloud:** Sign up at [https://cloud.qdrant.io/](https://cloud.qdrant.io/).
-   - Create a **1 GB Free Tier Cluster**.
-   - In **Data Access Control**, generate an API key and copy the HTTPS cluster URL (`https://...:6333`).
+### A. Redis Cloud (Key-Value Engine)
+- **Database Name:** `nosql-rag-research`
+- **Plan:** Free, 30 MB
+- **Cloud & Region:** AWS Mumbai (`ap-south-1`)
+- **Host:** `profit-cook-stitch-74158.db.redis.io`
+- **Port:** `18690`
+- **Username:** `default`
+- **Connection URI Format:**
+  ```text
+  redis://default:<REDIS_PASSWORD>@profit-cook-stitch-74158.db.redis.io:18690
+  ```
+  *(If your Redis console provides `rediss://` for TLS, use `rediss://` instead).*
+
+### B. MongoDB Atlas (Document Engine)
+- **Project:** `NoSQL RAG Research`
+- **Cluster:** `Cluster0` (M0 Free Tier)
+- **Host:** `cluster0.hqd8wfk.mongodb.net`
+- **Dedicated User:** `rag_research`
+- **Database Name:** `nosql_rag_research`
+- **Connection URI Format:**
+  ```text
+  mongodb+srv://rag_research:<MONGODB_PASSWORD>@cluster0.hqd8wfk.mongodb.net/nosql_rag_research?retryWrites=true&w=majority
+  ```
+  *(Ensure special characters in the password are percent-encoded).*
+- **Networking Requirement:** Google Colab dynamic egress IP must be allowlisted. Run Cell 13 in the notebook to discover the current IP, then add it in Atlas under **Network Access** as `<COLAB_PUBLIC_IP>/32` (recommended: 1-hour or 6-hour auto-expiry).
+
+### C. DataStax Astra DB (Wide-Column Engine / Cassandra)
+- **Database Name:** `nosql_rag_research`
+- **Database ID:** `0d4339a2-6863-4ac6-bd99-82ae8c984887`
+- **Keyspace:** `nosql_rag_research`
+- **Cloud & Region:** AWS `us-east-2`
+- **Driver Model:** Standard CQL driver with mutual TLS (mTLS).
+- **Secure Connect Bundle Archive:** `secure-connect-nosql-rag-research.zip`.
+- **Application Token:** `AstraCS:...` generated from Organization Settings.
+
+### Unprovisioned Services (Safely Skipped)
+- **Neo4j AuraDB:** Not yet provisioned. Safely skipped when unconfigured.
+- **Qdrant Cloud:** Not yet provisioned. Safely skipped when unconfigured.
 
 ---
 
@@ -31,43 +54,41 @@ Follow these official portals to register zero-cost free-tier accounts:
 In Google Colab, open the left sidebar, click the **Key icon (Secrets)**, add the keys below, and toggle **Notebook access** to ON:
 
 ```text
-REDIS_URL                           -> rediss://default:<password>@<host>:<port>
-MONGODB_URI                         -> mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+REDIS_URL                           -> redis://default:<password>@profit-cook-stitch-74158.db.redis.io:18690
+MONGODB_URI                         -> mongodb+srv://rag_research:<password>@cluster0.hqd8wfk.mongodb.net/nosql_rag_research?retryWrites=true&w=majority
 MONGODB_DATABASE                    -> nosql_rag_research
 CASSANDRA_MODE                      -> astra
 CASSANDRA_KEYSPACE                  -> nosql_rag_research
 CASSANDRA_SECURE_CONNECT_BUNDLE_PATH-> /tmp/astra_scb/secure-connect-bundle.zip
 CASSANDRA_APPLICATION_TOKEN         -> AstraCS:<your_token_string>
-NEO4J_URI                           -> neo4j+s://<instance_id>.databases.neo4j.io
-NEO4J_USERNAME                      -> neo4j
-NEO4J_PASSWORD                      -> <your_neo4j_password>
-NEO4J_DATABASE                      -> neo4j
-QDRANT_URL                          -> https://<cluster_id>.<region>.cloud.qdrant.io:6333
-QDRANT_API_KEY                      -> <your_qdrant_api_key>
 ```
-*Note on Neo4j:* `NEO4J_USERNAME` is canonical. If `NEO4J_USER` is configured instead, `DatabaseConfig` will automatically map it as a fallback alias.
 
-### Secure Connect Bundle Staging in Colab:
-In a notebook cell before running connection checks, stage the bundle outside the project workspace:
-```bash
-!mkdir -p /tmp/astra_scb && chmod 700 /tmp/astra_scb
-# If uploaded to /content/, move to restricted location:
-!mv /content/secure-connect-*.zip /tmp/astra_scb/secure-connect-bundle.zip 2>/dev/null || true
-!chmod 600 /tmp/astra_scb/secure-connect-bundle.zip
-```
+*(Optional unprovisioned secrets: `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `QDRANT_URL`, `QDRANT_API_KEY` can be left unset).*
 
 ---
 
-## 3. Local Development Setup (`.env`)
+## 3. Secure Connect Bundle (SCB) Staging in Colab
 
-For testing on your local machine, copy `.env.example` to `.env`:
+In the notebook, execute **Cell 15** (`Stage DataStax Astra DB Secure Connect Bundle`):
+1. A file picker dialog will open via `google.colab.files.upload()`.
+2. Select your downloaded `secure-connect-nosql-rag-research.zip`.
+3. The cell automatically stages it to `/tmp/astra_scb/secure-connect-bundle.zip` with permissions `0600`.
+4. It validates that the archive is a readable, uncorrupted ZIP containing Astra configuration markers.
+5. The bundle is completely isolated from `/content/nosql-rag-research/` and Google Drive.
+6. **Note on Runtime Restart:** `/tmp` is ephemeral. If the runtime is restarted or disconnected, re-run Cell 15 to re-stage the bundle.
+
+---
+
+## 4. Local Development Setup (`.env`)
+
+For local terminal development, copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Populate the values matching your provider instances. `.env` and `.env.*` are excluded by `.gitignore`.
+Populate the values matching your provisioned endpoints. `.env` and `.env.*` are excluded by `.gitignore`.
 
 Run the automated preflight check:
 ```bash
 python scripts/database_preflight.py
 ```
-Outputs a clean Markdown table and redacts all secrets from diagnostic logs.
+This tests configured services, skips unprovisioned ones, and sanitizes all errors.

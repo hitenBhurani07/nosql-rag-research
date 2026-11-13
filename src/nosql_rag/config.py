@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 from dotenv import load_dotenv
@@ -190,6 +192,160 @@ class DatabaseConfig(BaseModel):
             },
             {"database": "Qdrant", "setting": "qdrant_url", "configured": bool(self.qdrant_url)},
         ]
+
+
+def validate_runtime_configuration(config: DatabaseConfig) -> list[dict[str, Any]]:
+    """Validate runtime database configurations without exposing any sensitive values.
+
+    Performs structural and endpoint validation for:
+    - Redis: REDIS_URL scheme (redis/rediss), hostname, port.
+    - MongoDB: MONGODB_URI scheme (mongodb/mongodb+srv), hostname, database name.
+    - Cassandra: Astra mode, token presence, keyspace name, SCB path existence and ZIP validity.
+    - Neo4j & Qdrant: Reports configured if credentials present, else unconfigured/skipped.
+    """
+    results: list[dict[str, Any]] = []
+
+    # 1. Redis
+    redis_configured = bool(config.redis_url)
+    redis_valid = False
+    redis_notes = "Not configured"
+    if redis_configured:
+        try:
+            parsed = urlparse(config.redis_url or "")
+            if parsed.scheme not in ("redis", "rediss"):
+                redis_notes = f"Invalid scheme '{parsed.scheme}' (expected redis:// or rediss://)"
+            elif not parsed.hostname or not parsed.port:
+                redis_notes = "Missing host or port in REDIS_URL"
+            else:
+                redis_valid = True
+                redis_notes = f"Valid {parsed.scheme}:// endpoint ({parsed.hostname}:{parsed.port})"
+        except Exception as exc:
+            redis_notes = f"Malformed REDIS_URL: {type(exc).__name__}"
+    results.append(
+        {
+            "database": "Redis",
+            "configured": redis_configured,
+            "valid": redis_valid,
+            "status": "configured" if redis_valid else ("invalid" if redis_configured else "unconfigured"),
+            "details": redis_notes,
+        }
+    )
+
+    # 2. MongoDB
+    mongo_configured = bool(config.mongodb_uri)
+    mongo_valid = False
+    mongo_notes = "Not configured"
+    if mongo_configured:
+        try:
+            parsed = urlparse(config.mongodb_uri or "")
+            if parsed.scheme not in ("mongodb", "mongodb+srv"):
+                mongo_notes = f"Invalid scheme '{parsed.scheme}' (expected mongodb:// or mongodb+srv://)"
+            elif not parsed.hostname:
+                mongo_notes = "Missing hostname in MONGODB_URI"
+            elif config.mongodb_database != "nosql_rag_research":
+                mongo_notes = f"Expected database 'nosql_rag_research', got '{config.mongodb_database}'"
+            else:
+                mongo_valid = True
+                mongo_notes = f"Valid {parsed.scheme}:// cluster ({parsed.hostname}) / db: {config.mongodb_database}"
+        except Exception as exc:
+            mongo_notes = f"Malformed MONGODB_URI: {type(exc).__name__}"
+    results.append(
+        {
+            "database": "MongoDB",
+            "configured": mongo_configured,
+            "valid": mongo_valid,
+            "status": "configured" if mongo_valid else ("invalid" if mongo_configured else "unconfigured"),
+            "details": mongo_notes,
+        }
+    )
+
+    # 3. Apache Cassandra (Astra DB)
+    if config.cassandra_mode == "astra":
+        has_token = bool(config.cassandra_application_token)
+        has_keyspace = (config.cassandra_keyspace == "nosql_rag_research")
+        scb_path = config.cassandra_secure_connect_bundle_path
+        has_scb_path = bool(scb_path)
+
+        file_exists = False
+        zip_valid = False
+        astra_markers = False
+        if has_scb_path and Path(scb_path).is_file():
+            file_exists = True
+            try:
+                with zipfile.ZipFile(scb_path, "r") as zf:
+                    if zf.testzip() is None:
+                        zip_valid = True
+                        namelist = set(zf.namelist())
+                        expected = {"config.json", "cqlshrc", "cert", "key", "truststore.jks", "ca.crt"}
+                        if namelist & expected or any("cert" in n.lower() or "cqlsh" in n.lower() for n in namelist):
+                            astra_markers = True
+            except Exception:
+                zip_valid = False
+
+        astra_configured = has_token and has_keyspace and file_exists
+        astra_valid = astra_configured and zip_valid and astra_markers
+
+        if not has_token:
+            astra_notes = "Missing CASSANDRA_APPLICATION_TOKEN (AstraCS:...)"
+        elif not has_keyspace:
+            astra_notes = f"Expected keyspace 'nosql_rag_research', got '{config.cassandra_keyspace}'"
+        elif not has_scb_path:
+            astra_notes = "Missing CASSANDRA_SECURE_CONNECT_BUNDLE_PATH"
+        elif not file_exists:
+            astra_notes = f"Secure Connect Bundle missing at {scb_path} (upload required)"
+        elif not zip_valid:
+            astra_notes = "Corrupt or invalid ZIP archive at SCB path"
+        elif not astra_markers:
+            astra_notes = "ZIP archive is missing standard Astra certificate/config markers"
+        else:
+            astra_notes = f"Astra mode validated (keyspace: {config.cassandra_keyspace}, SCB: {scb_path})"
+
+        results.append(
+            {
+                "database": "Cassandra",
+                "configured": astra_configured,
+                "valid": astra_valid,
+                "status": "configured" if astra_valid else ("missing_bundle" if (has_token and not file_exists) else "invalid"),
+                "details": astra_notes,
+            }
+        )
+    else:
+        std_configured = bool(config.cassandra_hosts and config.cassandra_keyspace)
+        results.append(
+            {
+                "database": "Cassandra",
+                "configured": std_configured,
+                "valid": std_configured,
+                "status": "configured" if std_configured else "unconfigured",
+                "details": f"Standard mode ({config.cassandra_hosts or 'no hosts'})",
+            }
+        )
+
+    # 4. Neo4j
+    neo4j_configured = bool(config.neo4j_uri and config.neo4j_username and config.neo4j_password)
+    results.append(
+        {
+            "database": "Neo4j",
+            "configured": neo4j_configured,
+            "valid": neo4j_configured,
+            "status": "configured" if neo4j_configured else "unconfigured (skipped in Phase 13.1)",
+            "details": "Configured" if neo4j_configured else "Not yet provisioned (skipped in Phase 13.1)",
+        }
+    )
+
+    # 5. Qdrant
+    qdrant_configured = bool(config.qdrant_url)
+    results.append(
+        {
+            "database": "Qdrant",
+            "configured": qdrant_configured,
+            "valid": qdrant_configured,
+            "status": "configured" if qdrant_configured else "unconfigured (skipped in Phase 13.1)",
+            "details": "Configured" if qdrant_configured else "Not yet provisioned (skipped in Phase 13.1)",
+        }
+    )
+
+    return results
 
 
 class BenchmarkMatrixConfig(BaseModel):
