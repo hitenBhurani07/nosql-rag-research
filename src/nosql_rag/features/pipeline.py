@@ -98,7 +98,14 @@ def prepare_ml_dataset(
     if leaked:
         raise ValueError(f"Target-derived columns cannot be used as features: {sorted(leaked)}")
 
-    required = set(feature_columns) | {target_column, group_column}
+    # Auto-detect base_workload_id for matched concurrency groups if present
+    effective_group = (
+        "base_workload_id"
+        if group_column == "workload_id" and "base_workload_id" in labelled.columns
+        else group_column
+    )
+
+    required = set(feature_columns) | {target_column, effective_group}
     missing = sorted(required - set(labelled.columns))
     if missing:
         raise ValueError(f"Labelled dataset is missing required columns: {missing}")
@@ -106,7 +113,7 @@ def prepare_ml_dataset(
     clean = labelled.dropna(subset=[target_column]).copy()
     X = clean[list(feature_columns)].copy()
     y = clean[target_column].astype(str).copy()
-    groups = clean[group_column].astype(str).copy()
+    groups = clean[effective_group].astype(str).copy()
 
     if y.nunique() < 2:
         raise ValueError("At least two distinct best_store classes are required to train a classifier.")

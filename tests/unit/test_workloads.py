@@ -25,6 +25,29 @@ def test_generate_workload_profiles_schema() -> None:
     assert (profiles["read_ratio"] + profiles["write_ratio"]).round(2).eq(1.0).all()
 
 
+def test_generate_workload_profiles_matched_concurrency() -> None:
+    profiles = generate_workload_profiles(
+        n_profiles=5,
+        concurrency_levels=[1, 4],
+        matched_concurrency=True,
+        seed=42,
+    )
+    # 5 base profiles x 2 concurrency levels = 10 matched rows
+    assert len(profiles) == 10
+    assert "base_workload_id" in profiles.columns
+    assert profiles["base_workload_id"].nunique() == 5
+    # Each base workload has exactly 2 rows
+    assert (profiles["base_workload_id"].value_counts() == 2).all()
+    # Concurrency levels are [1, 4] for each pair
+    for _, group in profiles.groupby("base_workload_id"):
+        assert set(group["concurrency"]) == {1, 4}
+        # Non-concurrency features must match exactly within a matched pair
+        assert group["query_type"].nunique() == 1
+        assert group["read_ratio"].nunique() == 1
+        assert group["payload_bytes"].nunique() == 1
+        assert group["dataset_records"].nunique() == 1
+
+
 def test_feasibility_vector_and_rag() -> None:
     vec_workload = {"query_type": "vector_similarity", "vector_dimensions": 128, "top_k": 10}
     res = evaluate_feasibility(vec_workload)
