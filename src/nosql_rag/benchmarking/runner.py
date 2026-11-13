@@ -284,18 +284,31 @@ def verify_crud_pilot_readiness(
 ) -> dict[str, dict[str, Any]]:
     """Verify that all required candidate CRUD databases are live and connected.
 
-    Raises RuntimeError if any required engine is FAILED or SKIPPED, preventing
-    an incomplete, scientifically invalid comparison.
+    Accepts the list[dict[str, Any]] returned by check_crud_connections(db_config).
+    Indexes results by each entry's 'database' field.
+    Raises RuntimeError if any required engine is FAILED, SKIPPED, missing, or not connected,
+    preventing an incomplete, scientifically invalid comparison.
     """
     from nosql_rag.adapters import check_crud_connections
 
-    statuses = check_crud_connections(db_config)
+    raw_results = check_crud_connections(db_config)
+    if isinstance(raw_results, list):
+        statuses: dict[str, dict[str, Any]] = {
+            item["database"]: item
+            for item in raw_results
+            if isinstance(item, dict) and "database" in item
+        }
+    elif isinstance(raw_results, dict):
+        statuses = raw_results
+    else:
+        statuses = {}
+
     unconnected: list[str] = []
 
     for db in required_databases:
         info = statuses.get(db)
         if not info:
-            unconnected.append(f"{db}: NOT_FOUND")
+            unconnected.append(f"{db} (MISSING: no health check record returned)")
         elif info.get("status") != "CONNECTED" or not info.get("connected"):
             status_str = info.get("status", "UNKNOWN")
             err = info.get("error") or "not connected"
@@ -304,12 +317,123 @@ def verify_crud_pilot_readiness(
     if unconnected:
         raise RuntimeError(
             "Pilot execution gate failed: Not all required CRUD databases are CONNECTED.\n"
-            f"Unconnected required databases: {', '.join(unconnected)}.\n"
+            "Unconnected required databases:\n  - " + "\n  - ".join(unconnected) + "\n\n"
             "All four CRUD databases (Redis, MongoDB, Cassandra, Neo4j) must report CONNECTED "
-            "before executing the pilot comparison. Please verify your credentials and network access."
+            "before executing the pilot comparison. Please verify your credentials, network access, "
+            "and bundle staging."
         )
 
     return statuses
+
+
+def analyze_pilot_progress(
+    runs_df: pd.DataFrame,
+    pilot_profiles: pd.DataFrame,
+    candidate_databases: list[str] | tuple[str, ...] = ("Redis", "MongoDB", "Cassandra", "Neo4j"),
+    repetitions: int = 1,
+) -> dict[str, Any]:
+    """Analyze append-only benchmark runs against target pilot configurations.
+
+    Distinguishes total historical attempts from current completion status across
+    the unique (workload_id, database, repetition) configurations.
+    """
+    pilot_ids = set(pilot_profiles["workload_id"].astype(str)) if not pilot_profiles.empty else set()
+
+    if runs_df.empty or "workload_id" not in runs_df.columns:
+        pilot_history = pd.DataFrame()
+    else:
+        pilot_history = runs_df[runs_df["workload_id"].astype(str).isin(pilot_ids)].copy()
+
+    total_attempts = len(pilot_history)
+    hist_success = int((pilot_history["status"] == "success").sum()) if not pilot_history.empty else 0
+    hist_failed = int((pilot_history["status"] == "failed").sum()) if not pilot_history.empty else 0
+    hist_partial = int((pilot_history["status"] == "partial").sum()) if not pilot_history.empty else 0
+
+    target_configs: list[tuple[str, str, int]] = []
+    for wid in sorted(pilot_ids):
+        for db in candidate_databases:
+            for rep in range(1, repetitions + 1):
+                target_configs.append((str(wid), str(db), rep))
+
+    config_rows: list[dict[str, Any]] = []
+    successful_configs = 0
+
+    for wid, db, rep in target_configs:
+        if pilot_history.empty:
+            matches = pd.DataFrame()
+        else:
+            matches = pilot_history[
+                (pilot_history["workload_id"].astype(str) == wid)
+                & (pilot_history["database"].astype(str) == db)
+                & (pilot_history["repetition"].astype(int) == rep)
+            ]
+
+        attempts = len(matches)
+        successes = matches[matches["status"] == "success"] if not matches.empty else pd.DataFrame()
+
+        diagnostic_hint = None
+        if not successes.empty:
+            successful_configs += 1
+            best_row = successes.iloc[-1]
+            status = "success"
+            err_summary = None
+        elif not matches.empty:
+            best_row = matches.iloc[-1]
+            status = str(best_row.get("status", "failed"))
+            err_summary = str(best_row.get("error_summary", "Unknown failure"))
+
+            err_lower = err_summary.lower()
+            if any(k in err_lower for k in ["ssl", "tls", "handshake", "serverselection", "connection closed", "timeout"]):
+                diagnostic_hint = (
+                    "MongoDB TLS Handshake / Network Error: Verify Colab public IP is allowlisted in MongoDB Atlas "
+                    "Network Access (<COLAB_IP>/32 from Cell 13), or enable 0.0.0.0/0 temporarily."
+                )
+            elif any(k in err_lower for k in ["bundle", "secure_connect", "astra", "scb", "not found"]):
+                diagnostic_hint = (
+                    "Cassandra Astra SCB Missing: Re-run Cell 15 to upload and stage secure-connect-bundle.zip "
+                    "into /tmp/astra_scb/secure-connect-bundle.zip."
+                )
+        else:
+            best_row = pd.Series(dtype=object)
+            status = "pending"
+            err_summary = "Not yet attempted"
+
+        config_rows.append(
+            {
+                "workload_id": wid,
+                "database": db,
+                "repetition": rep,
+                "attempts": attempts,
+                "current_status": status,
+                "run_id": best_row.get("run_id") if not best_row.empty else None,
+                "database_version": best_row.get("database_version") if not best_row.empty else None,
+                "p50_latency_ms": best_row.get("p50_latency_ms") if not best_row.empty else None,
+                "p95_latency_ms": best_row.get("p95_latency_ms") if not best_row.empty else None,
+                "p99_latency_ms": best_row.get("p99_latency_ms") if not best_row.empty else None,
+                "throughput_ops_sec": best_row.get("throughput_ops_sec") if not best_row.empty else None,
+                "cleanup_result": best_row.get("cleanup_result") if not best_row.empty else None,
+                "error_summary": err_summary,
+                "diagnostic_hint": diagnostic_hint,
+                "data_provenance": best_row.get("data_provenance") if not best_row.empty else None,
+            }
+        )
+
+    config_df = pd.DataFrame(config_rows)
+    target_count = len(target_configs)
+    is_complete = (successful_configs == target_count and target_count > 0)
+
+    return {
+        "target_configurations_count": target_count,
+        "successful_configurations_count": successful_configs,
+        "pending_configurations_count": target_count - successful_configs,
+        "is_pilot_complete": is_complete,
+        "total_historical_attempts": total_attempts,
+        "historical_successes": hist_success,
+        "historical_failures": hist_failed,
+        "historical_partials": hist_partial,
+        "config_summary_df": config_df,
+        "history_df": pilot_history,
+    }
 
 
 def benchmark_neo4j_graph_traversal(

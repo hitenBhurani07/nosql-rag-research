@@ -99,13 +99,22 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
 - Offline gate: Tests CLI help invocation, experiment configuration loading, synthetic demo data generation (`data_provenance=synthetic_demo`), and dataset validator without requiring any live database connections.
 
 ### Step 6: Run Pre-Flight Pilot Benchmark (Cells 28–35)
-1. In Cell 4, set `RUN_PILOT = True`.
-2. Run Cell 35 (`Execute Pre-Flight Pilot Benchmark`).
-   - Gate verification: calls `verify_crud_pilot_readiness(db_config)`, checking that all 4 CRUD databases (Redis, MongoDB, Cassandra, Neo4j) report `CONNECTED`. If any is `FAILED` or `SKIPPED`, execution halts immediately.
-   - Executes 2 workload profiles $\times$ 4 candidate CRUD engines $\times$ 1 repetition = **8 genuine benchmark runs** (250 operations each, 20 warm-up operations excluded from latency measurement).
-   - Appends results directly to `data/raw/crud_benchmark_runs.csv` (`data_provenance=genuine_benchmark`).
-   - **Resume support:** If rerun, automatically skips already-completed `status='success'` runs, preventing duplicates.
-   - Displays full run metrics table and a separate summary breakdown of successful, partial, and failed runs.
+1. **Pre-Requisite Recovery Checklist (if previous attempts encountered errors):**
+   - **MongoDB TLS Handshake Errors:** Run Cell 13 to check Colab's current public IP. In MongoDB Atlas -> Network Access, verify that `<COLAB_IP>/32` is allowlisted (or enable `0.0.0.0/0` temporarily with short TTL during the experiment run).
+   - **Cassandra Astra SCB Missing File:** Run Cell 15 to upload `secure-connect-nosql-rag-research.zip`. Verify it stages into `/tmp/astra_scb/secure-connect-bundle.zip`.
+   - Run Cell 25 (`RUN_CONNECTION_CHECKS = True`) to verify all 4 CRUD databases report `CONNECTED`.
+2. In Cell 4, set `RUN_PILOT = True`.
+3. Run Cell 35 (`Execute Pre-Flight Pilot Benchmark`).
+   - **Readiness Gate:** Calls `verify_crud_pilot_readiness(db_config)`, which maps connection test results across candidate engines. If any of the four CRUD engines (`Redis`, `MongoDB`, `Cassandra`, `Neo4j`) is `FAILED`, `SKIPPED`, or missing, execution halts immediately with an explicit error.
+   - **Target Matrix:** 2 workload profiles (`P0001`, `P0002`) $\times$ 4 candidate CRUD engines $\times$ 1 repetition = **8 unique target configurations** (250 operations each, 20 warm-up operations excluded from latency measurement).
+   - **Append-Only Persistence & Resume:**
+     - All historical attempts (including past failures) are strictly preserved in `data/raw/crud_benchmark_runs.csv` for auditability.
+     - Already successful configurations (e.g., Redis and Neo4j) are **not** re-executed.
+     - Only pending/failed configurations (e.g., MongoDB and Cassandra) are executed.
+   - **Completeness Reporting:**
+     - Distinguishes total historical attempts from unique configuration completeness.
+     - The pilot is declared complete **only when all 8 unique configurations** have verified genuine benchmark records.
+     - Displays per-configuration metrics, error summaries, and diagnostic recovery hints.
 
 ### Step 7: Execute Full Matrix Benchmark (Cells 36–37)
 1. Once the pilot passes cleanly, set `RUN_FULL_MATRIX = True` in Cell 4.

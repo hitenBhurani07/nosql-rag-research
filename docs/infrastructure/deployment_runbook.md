@@ -101,9 +101,11 @@ Enter secrets per [docs/infrastructure/credential_setup_guide.md](file:///c:/Use
   - Set `RUN_PILOT = True` in Cell 4.
   - Run **Cell 35**.
   - Cell 35 runs `verify_crud_pilot_readiness(db_config)` to confirm all 4 engines are CONNECTED before benchmarking.
-  - Executes 2 profiles $\times$ 4 engines $\times$ 1 repetition = **8 genuine benchmark runs** (250 operations each, 20 warm-up operations excluded).
-  - Appends to `data/raw/crud_benchmark_runs.csv` and displays the full metrics table and summary.
-  - Resume support ensures re-running skips already-successful runs.
+  - Targets 2 profiles $\times$ 4 engines $\times$ 1 repetition = **8 unique target configurations** (250 operations each, 20 warm-up operations excluded).
+  - Appends to `data/raw/crud_benchmark_runs.csv` (`data_provenance=genuine_benchmark`).
+  - **Resume & Retry Intelligence:** Preserves all historical attempts (including past failures); skips already-successful configurations (e.g., Redis and Neo4j); executes only pending configurations.
+  - The pilot is declared complete **only when all 8 unique configurations** achieve successful genuine benchmark records.
+  - Provides detailed diagnostics for any unresolved configurations (e.g. MongoDB Atlas IP allowlist or Astra SCB staging).
 
 ### Step 9: Isolated Vector and Graph Pilots (Cells 57, 59, 61)
 - **Cell 57 (Qdrant ANN):** `RUN_QDRANT_ANN_PILOT = True` -> evaluates vector recall and query latency (`qdrant_ann_runs.json`).
