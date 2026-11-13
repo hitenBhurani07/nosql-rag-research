@@ -25,8 +25,8 @@ python scripts/database_preflight.py
 
 ### Option B: Google Colab Run
 1. Open [notebooks/NoSQL_RAG_Implementation_Colab.ipynb](file:///c:/Users/hiten/nosql-rag-research/notebooks/NoSQL_RAG_Implementation_Colab.ipynb).
-2. Upload `secure-connect-database.zip` into `/content/`.
-3. Populate Colab Secrets.
+2. Upload `secure-connect-<name>.zip` to `/content/` and stage it into `/tmp/astra_scb/secure-connect-bundle.zip` with permissions `0600`.
+3. Populate Colab Secrets per [docs/infrastructure/credential_setup_guide.md](file:///c:/Users/hiten/nosql-rag-research/docs/infrastructure/credential_setup_guide.md).
 4. In Cell 4, set:
    ```python
    RUN_CONNECTION_CHECKS = True

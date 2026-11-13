@@ -11,6 +11,7 @@ from typing import Any
 from nosql_rag.adapters import (
     build_crud_adapter,
     check_qdrant_connection,
+    sanitize_error_message,
 )
 from nosql_rag.config import DatabaseConfig
 
@@ -71,7 +72,13 @@ def run_database_preflight(config: DatabaseConfig) -> dict[str, Any]:
         except Exception as exc:
             elapsed_ms = round((time.perf_counter() - started) * 1000.0, 3)
             exc_str = str(exc)
-            err_cat = "AuthenticationError" if any(k in exc_str.lower() for k in ["auth", "password", "token", "unauthorized"]) else "NetworkError"
+            err_cat = (
+                "AuthenticationError"
+                if any(k in exc_str.lower() for k in ["auth", "password", "token", "unauthorized", "credential"])
+                else "NetworkError"
+            )
+            raw_detail = f"{type(exc).__name__}: {exc_str[:250]}"
+            sanitized_detail = sanitize_error_message(raw_detail)
             results.append(
                 {
                     "database": name,
@@ -80,7 +87,7 @@ def run_database_preflight(config: DatabaseConfig) -> dict[str, Any]:
                     "version": "unknown",
                     "latency_ms": elapsed_ms,
                     "error_category": err_cat,
-                    "error_details": f"{type(exc).__name__}: {exc_str[:250]}",
+                    "error_details": sanitized_detail,
                 }
             )
         finally:
@@ -108,8 +115,13 @@ def run_database_preflight(config: DatabaseConfig) -> dict[str, Any]:
         q_res = check_qdrant_connection(config)
         err = q_res.get("error")
         err_cat = None
+        sanitized_err = sanitize_error_message(err)
         if err:
-            err_cat = "AuthenticationError" if any(k in err.lower() for k in ["api_key", "unauthorized", "401"]) else "NetworkError"
+            err_cat = (
+                "AuthenticationError"
+                if any(k in err.lower() for k in ["api_key", "unauthorized", "401", "credential"])
+                else "NetworkError"
+            )
         results.append(
             {
                 "database": "Qdrant",
@@ -118,7 +130,7 @@ def run_database_preflight(config: DatabaseConfig) -> dict[str, Any]:
                 "version": q_res.get("version", "unknown"),
                 "latency_ms": q_res.get("connect_check_ms"),
                 "error_category": err_cat,
-                "error_details": err[:250] if err else None,
+                "error_details": sanitized_err[:250] if sanitized_err else None,
             }
         )
 

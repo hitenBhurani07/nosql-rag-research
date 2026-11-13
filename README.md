@@ -69,7 +69,7 @@ nosql-rag-research/
 │       ├── cli.py                  # CLI entry point (nosql-rag)
 │       └── config.py               # Pydantic configuration & safe secret handler
 ├── tests/
-│   ├── unit/                       # 24 unit tests covering all modules & dual-mode adapters
+│   ├── unit/                       # 28 unit tests covering all modules, dual-mode adapters & redaction
 │   └── integration/                # Marked integration tests requiring live databases
 ├── .env.example                    # Template for database credentials (never commit .env)
 ├── .gitignore                      # Excludes credentials, caches, raw/processed data, models

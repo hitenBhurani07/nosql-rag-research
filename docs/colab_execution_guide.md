@@ -24,14 +24,17 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
 | `REDIS_URL` | String | Connection URI for Redis | `rediss://default:token@my-redis.cloud:6379/0` |
 | `MONGODB_URI` | String | MongoDB Atlas or remote connection URI | `mongodb+srv://user:pass@cluster0.mongodb.net/?retryWrites=true&w=majority` |
 | `MONGODB_DATABASE` | String | Database name (optional, defaults to `nosql_rag_research`) | `nosql_rag_research` |
-| `CASSANDRA_HOSTS` | String | Cassandra contact points | `127.0.0.1` or Astra cluster host |
-| `CASSANDRA_PORT` | Integer | Cassandra CQL port (default `9042`) | `9042` |
+| `CASSANDRA_MODE` | String | Cassandra mode (`standard` or `astra`) | `astra` |
 | `CASSANDRA_KEYSPACE` | String | Existing CQL keyspace | `nosql_rag_research` |
-| `CASSANDRA_USERNAME` | String | Cassandra username or Astra client ID | `my_user` |
-| `CASSANDRA_PASSWORD` | String | Cassandra password or Astra secret | `my_password` |
+| `CASSANDRA_SECURE_CONNECT_BUNDLE_PATH` | String | Path to Astra Secure Connect Bundle (staged in `/tmp/astra_scb/`) | `/tmp/astra_scb/secure-connect-bundle.zip` |
+| `CASSANDRA_APPLICATION_TOKEN` | String | DataStax Astra application token | `AstraCS:xxxx` |
+| `CASSANDRA_HOSTS` | String | Standard Cassandra contact points (standard mode only) | `127.0.0.1` |
+| `CASSANDRA_PORT` | Integer | Cassandra CQL port (default `9042`) | `9042` |
+| `CASSANDRA_USERNAME` | String | Standard Cassandra username (standard mode only) | `my_user` |
+| `CASSANDRA_PASSWORD` | String | Standard Cassandra password (standard mode only) | `my_password` |
 | `CASSANDRA_SSL` | Boolean | Enable SSL/TLS for Cassandra (default `false`) | `true` |
 | `NEO4J_URI` | String | Neo4j AuraDB or Bolt URI | `neo4j+s://xxxx.databases.neo4j.io` |
-| `NEO4J_USERNAME` | String | Neo4j username | `neo4j` |
+| `NEO4J_USERNAME` | String | Neo4j username (`neo4j`; `NEO4J_USER` accepted as fallback alias) | `neo4j` |
 | `NEO4J_PASSWORD` | String | Neo4j password | `my_neo4j_password` |
 | `NEO4J_DATABASE` | String | Neo4j database (default `neo4j`) | `neo4j` |
 | `QDRANT_URL` | String | Qdrant Cloud or remote endpoint URL | `https://xxxx.cloud.qdrant.io:6333` |

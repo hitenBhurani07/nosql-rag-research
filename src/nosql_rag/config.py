@@ -149,7 +149,7 @@ class DatabaseConfig(BaseModel):
             cassandra_secure_connect_bundle_path=bundle_path,
             cassandra_application_token=app_token,
             neo4j_uri=_get_secret("NEO4J_URI"),
-            neo4j_username=_get_secret("NEO4J_USERNAME"),
+            neo4j_username=_get_secret("NEO4J_USERNAME") or _get_secret("NEO4J_USER"),
             neo4j_password=_get_secret("NEO4J_PASSWORD"),
             neo4j_database=_get_secret("NEO4J_DATABASE", "neo4j") or "neo4j",
             qdrant_url=_get_secret("QDRANT_URL"),

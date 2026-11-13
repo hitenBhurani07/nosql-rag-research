@@ -19,6 +19,77 @@ def safe_identifier(value: str, prefix: str = "bench") -> str:
     return cleaned[:48]
 
 
+def sanitize_error_message(text: str | None) -> str | None:
+    """Robustly redact secrets, passwords, tokens, and credentials from error diagnostics.
+
+    Never allows credentials (Redis, MongoDB, Astra, Neo4j, Qdrant) to leak into logs,
+    outputs, reports, or exception traces.
+    """
+    if not text:
+        return None
+
+    sanitized = str(text)
+
+    # 1. Redact DataStax Astra application tokens first
+    sanitized = re.sub(
+        r"AstraCS:[A-Za-z0-9_\-:]+",
+        "AstraCS:[REDACTED]",
+        sanitized,
+    )
+
+    # 2. Redact Authorization headers and Bearer tokens
+    sanitized = re.sub(
+        r"(Authorization\s*[:=]\s*(?:Bearer\s+)?)(?!\[REDACTED\])[A-Za-z0-9_\-\.]{6,}",
+        r"\1[REDACTED]",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+    sanitized = re.sub(
+        r"(\bBearer\s+)(?!\[REDACTED\])[A-Za-z0-9_\-\.]{6,}",
+        r"\1[REDACTED]",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+
+    # 3. Redact URI userinfo with user:password (e.g. mongodb+srv://user:pass@host, neo4j+s://user:pass@host)
+    sanitized = re.sub(
+        r"://([^:\s/@]+):([^\s/]+)@([a-zA-Z0-9_.-]+(?::[0-9]+)?(?:[/?#\s]|$))",
+        r"://\1:[REDACTED]@\3",
+        sanitized,
+    )
+    # Redact URI userinfo with empty user (e.g. redis://:password@host)
+    sanitized = re.sub(
+        r"://:([^\s/]+)@([a-zA-Z0-9_.-]+(?::[0-9]+)?(?:[/?#\s]|$))",
+        r"://:[REDACTED]@\2",
+        sanitized,
+    )
+    # Redact URI userinfo without colon (e.g. redis://password@host)
+    sanitized = re.sub(
+        r"://([^:@\s/]+)@([a-zA-Z0-9_.-]+(?::[0-9]+)?(?:[/?#\s]|$))",
+        r"://[REDACTED]@\2",
+        sanitized,
+    )
+
+    # 4. Redact URL query parameters (e.g. ?api_key=... or &token=...)
+    sanitized = re.sub(
+        r"([?&](?:api[_-]?key|token|password|secret|auth)=)([^&\s]+)",
+        r"\1[REDACTED]",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+
+    # 5. Redact key-value assignments: token=..., api_key: ..., password = ...
+    # Negative lookahead prevents mangling values that were already redacted
+    sanitized = re.sub(
+        r"((?:api[_-]?key|password|token|secret)\s*[:=]\s*)(['\"]?)(?!\[REDACTED\]|AstraCS:\[REDACTED\])[^'\",\s;&]+\2",
+        r"\1\2[REDACTED]\2",
+        sanitized,
+        flags=re.IGNORECASE,
+    )
+
+    return sanitized
+
+
 class BaseAdapter(ABC):
     """Common lifecycle and health-check interface for all NoSQL adapters."""
 

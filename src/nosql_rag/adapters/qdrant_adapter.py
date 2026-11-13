@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from nosql_rag.adapters.base import AdapterError, BaseAdapter
+from nosql_rag.adapters.base import AdapterError, BaseAdapter, sanitize_error_message
 from nosql_rag.config import DatabaseConfig
 
 
@@ -74,12 +74,13 @@ def check_qdrant_connection(config: DatabaseConfig) -> dict[str, Any]:
             "error": None,
         }
     except Exception as exc:
+        sanitized_err = sanitize_error_message(f"{type(exc).__name__}: {str(exc)[:300]}")
         return {
             "database": "Qdrant",
             "connected": False,
             "version": None,
             "connect_check_ms": round((time.perf_counter() - started) * 1000, 3),
-            "error": f"{type(exc).__name__}: {str(exc)[:300]}",
+            "error": sanitized_err,
         }
     finally:
         if adapter is not None:

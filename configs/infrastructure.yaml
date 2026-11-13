@@ -6,34 +6,57 @@ deployment_mode: mode_a_free_tier  # 'mode_a_free_tier' or 'mode_b_controlled_ho
 hosting_providers:
   redis:
     provider: Redis Cloud
-    tier: Free Plan (30MB)
-    max_throughput_ops_sec: 100
+    tier: Fixed Free Plan
+    storage_mb: 30
     max_connections: 30
+    max_throughput_ops_sec: 100
+    monthly_bandwidth_gb: 5
+    inactivity_purge_days: 90
     timeout_seconds: 15
 
   mongodb:
     provider: MongoDB Atlas
-    tier: M0 Free Cluster (512MB)
+    tier: M0 Sandbox Shared Cluster
+    storage_mb: 512
     max_connections: 500
+    max_throughput_ops_sec: 100
+    auto_pause_days: 30
     timeout_seconds: 20
+    network_access:
+      policy: restricted_session_ip_or_tunnel
+      colab_warning: "Do not use blanket 0.0.0.0/0 as permanent configuration. Use temporary /32 IP with auto-expiry or a bastion tunnel."
 
   cassandra:
     provider: DataStax Astra DB Serverless
-    tier: Free Tier Credits ($25/mo)
+    tier: Serverless Consumption / Free Credit Allowance
     mode: astra
+    credit_model: promotional_or_monthly_credits_subject_to_account_plan
+    inactivity_hibernation: true
+    exhaustion_action: write_suspension
     timeout_seconds: 25
+    secure_connect_bundle:
+      canonical_colab_path: /tmp/astra_scb/secure-connect-bundle.zip
+      file_permission: "0600"
 
   neo4j:
     provider: Neo4j AuraDB
-    tier: AuraDB Free (200k nodes)
+    tier: AuraDB Free
+    quota_range: "50k-200k nodes, 100k-400k relationships (varies by console region/revision)"
+    max_connections: 10
+    auto_pause_hours: 72
+    paused_deletion_days: 30
     timeout_seconds: 25
-    auto_pause_days: 3
 
   qdrant:
     provider: Qdrant Cloud
-    tier: 1GB RAM / 4GB SSD Free Cluster
+    tier: Free Tier 1-Node Cluster
+    vcpu: 0.5
+    ram_gb: 1.0
+    disk_ssd_gb: 4.0
+    max_connections: 20
+    auto_suspend_days: 7
+    suspended_deletion_days: 28
     timeout_seconds: 30
-    auto_pause_days: 7
 
 controlled_host:
   target_os: Linux (Ubuntu 22.04 LTS or Oracle Linux 9)
@@ -42,3 +65,16 @@ controlled_host:
   co_located_client: true
   sequential_execution: true
   drop_page_caches_between_runs: true
+  oracle_always_free:
+    shape: VM.Standard.A1.Flex (Ampere A1)
+    monthly_limits: "3,000 OCPU hours, 18,000 GB-hours per month"
+    verification_hold: "Requires credit/debit card verification (~$1 temporary hold)"
+    idle_reclamation_policy: "Reclaimed if CPU/memory/network utilization <20% over 7 days"
+    cost_estimate_usd: 0.00
+  gcp_spot:
+    shape: c2-standard-8 (8 vCPU, 32 GB RAM)
+    hourly_vm_spot_usd: 0.0522  # us-central1 estimate
+    hourly_disk_100gb_ssd_usd: 0.024
+    hourly_ip_in_use_usd: 0.005
+    egress_per_gb_usd: 0.12
+    hourly_all_inclusive_estimate_usd: 0.10 - 0.15

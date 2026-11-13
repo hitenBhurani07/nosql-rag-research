@@ -36,3 +36,17 @@ def test_experiment_config_validation() -> None:
     assert cfg.primary_objective == "min_p95_latency_ms"
     assert cfg.pilot.n_profiles >= 1
     assert cfg.full_matrix.n_profiles >= 10
+
+
+def test_neo4j_username_and_user_alias(monkeypatch) -> None:
+    # Test primary variable NEO4J_USERNAME
+    monkeypatch.setenv("NEO4J_USERNAME", "admin_user")
+    monkeypatch.delenv("NEO4J_USER", raising=False)
+    cfg1 = DatabaseConfig.from_env()
+    assert cfg1.neo4j_username == "admin_user"
+
+    # Test fallback alias NEO4J_USER
+    monkeypatch.delenv("NEO4J_USERNAME", raising=False)
+    monkeypatch.setenv("NEO4J_USER", "fallback_user")
+    cfg2 = DatabaseConfig.from_env()
+    assert cfg2.neo4j_username == "fallback_user"
