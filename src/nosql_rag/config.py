@@ -105,6 +105,7 @@ class DatabaseConfig(BaseModel):
     cassandra_ssl: bool = False
     cassandra_secure_connect_bundle_path: str | None = None
     cassandra_application_token: str | None = None
+    cassandra_protocol_version: int | None = None
 
     # Neo4j (Graph)
     neo4j_uri: str | None = None
@@ -136,6 +137,14 @@ class DatabaseConfig(BaseModel):
         if bundle_path or app_token:
             cassandra_mode = "astra"
 
+        proto_raw = _get_secret("CASSANDRA_PROTOCOL_VERSION")
+        cassandra_protocol_version: int | None = None
+        if proto_raw and proto_raw.strip().isdigit():
+            cassandra_protocol_version = int(proto_raw.strip())
+        elif cassandra_mode == "astra":
+            # Default to protocol version 5 for Astra DB to avoid driver downgrade warnings
+            cassandra_protocol_version = 5
+
         return cls(
             redis_url=_get_secret("REDIS_URL"),
             mongodb_uri=_get_secret("MONGODB_URI"),
@@ -150,6 +159,7 @@ class DatabaseConfig(BaseModel):
             cassandra_ssl=_parse_bool(_get_secret("CASSANDRA_SSL", "false")),
             cassandra_secure_connect_bundle_path=bundle_path,
             cassandra_application_token=app_token,
+            cassandra_protocol_version=cassandra_protocol_version,
             neo4j_uri=_get_secret("NEO4J_URI"),
             neo4j_username=_get_secret("NEO4J_USERNAME") or _get_secret("NEO4J_USER"),
             neo4j_password=_get_secret("NEO4J_PASSWORD"),

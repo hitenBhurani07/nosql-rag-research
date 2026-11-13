@@ -129,6 +129,7 @@ class CassandraAdapter(BaseCRUDAdapter):
         mode: str = "standard",
         secure_connect_bundle_path: str | None = None,
         application_token: str | None = None,
+        protocol_version: int | None = None,
     ) -> None:
         try:
             from cassandra.auth import PlainTextAuthProvider
@@ -157,10 +158,14 @@ class CassandraAdapter(BaseCRUDAdapter):
             # Astra tokens use client ID 'token' and password = token
             auth = PlainTextAuthProvider("token", application_token)
             cloud_config = {"secure_connect_bundle": secure_connect_bundle_path}
+            # Astra DB supports native CQL protocol version 5 (or 4).
+            # Defaulting to 5 prevents driver downgrading warnings from protocol 6.
+            selected_protocol = protocol_version if protocol_version is not None else 5
             self.cluster = Cluster(
                 cloud=cloud_config,
                 auth_provider=auth,
                 connect_timeout=15,
+                protocol_version=selected_protocol,
             )
         else:
             if not hosts or not keyspace:
@@ -169,13 +174,16 @@ class CassandraAdapter(BaseCRUDAdapter):
             host_list = [h.strip() for h in hosts.split(",") if h.strip()]
             auth = PlainTextAuthProvider(username=username, password=password) if username else None
             ssl_context = ssl.create_default_context() if use_ssl else None
-            self.cluster = Cluster(
-                contact_points=host_list,
-                port=int(port),
-                auth_provider=auth,
-                ssl_context=ssl_context,
-                connect_timeout=10,
-            )
+            cluster_kwargs: dict[str, Any] = {
+                "contact_points": host_list,
+                "port": int(port),
+                "auth_provider": auth,
+                "ssl_context": ssl_context,
+                "connect_timeout": 10,
+            }
+            if protocol_version is not None:
+                cluster_kwargs["protocol_version"] = protocol_version
+            self.cluster = Cluster(**cluster_kwargs)
 
         self.session = self.cluster.connect(keyspace)
         self.prepared: dict[str, dict[str, Any]] = {}
@@ -250,10 +258,15 @@ class Neo4jAdapter(BaseCRUDAdapter):
     def check(self) -> bool:
         self.driver.verify_connectivity()
         with self._session() as session:
-            result = session.run(
-                "CALL dbms.components() YIELD versions RETURN versions[0] AS version"
-            ).single()
-            self.version = str(result["version"]) if result else "unknown"
+            try:
+                # Use LIMIT 1 to prevent driver warning: "Expected a result with a single record, but found multiple."
+                result = session.run(
+                    "CALL dbms.components() YIELD name, versions "
+                    "RETURN versions[0] AS version LIMIT 1"
+                ).single()
+                self.version = str(result["version"]) if result and "version" in result else "unknown"
+            except Exception:
+                self.version = "unknown"
         return True
 
     def metadata(self) -> dict[str, Any]:
@@ -356,6 +369,7 @@ def build_crud_adapter(database_name: str, config: DatabaseConfig) -> BaseCRUDAd
                 keyspace=config.cassandra_keyspace,
                 secure_connect_bundle_path=config.cassandra_secure_connect_bundle_path,
                 application_token=config.cassandra_application_token,
+                protocol_version=config.cassandra_protocol_version,
             )
 
         if not config.cassandra_hosts or not config.cassandra_keyspace:
@@ -368,6 +382,7 @@ def build_crud_adapter(database_name: str, config: DatabaseConfig) -> BaseCRUDAd
             password=config.cassandra_password,
             keyspace=config.cassandra_keyspace,
             use_ssl=config.cassandra_ssl,
+            protocol_version=config.cassandra_protocol_version,
         )
     if database_name == "Neo4j":
         if not all([config.neo4j_uri, config.neo4j_username, config.neo4j_password]):

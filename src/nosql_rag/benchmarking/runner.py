@@ -95,6 +95,7 @@ def benchmark_common_crud(
         "cpu_seconds": np.nan,
         "config_hash": "",
         "hosting_region": db_config.hosting_region,
+        "cleanup_result": "skipped" if not cleanup else "pending",
         "status": "failed",
         "error_summary": None,
         "data_provenance": provenance.value,
@@ -208,8 +209,12 @@ def benchmark_common_crud(
             if cleanup:
                 try:
                     adapter.cleanup(run_id)
+                    row["cleanup_result"] = "success"
                 except Exception as cleanup_exc:
                     logger.warning("Cleanup failed for %s: %s", run_id, cleanup_exc)
+                    row["cleanup_result"] = f"failed: {str(cleanup_exc)[:100]}"
+            else:
+                row["cleanup_result"] = "skipped"
             try:
                 adapter.close()
             except Exception:
@@ -271,6 +276,40 @@ def run_crud_matrix(
             batch.clear()
 
     return load_raw_runs(output_csv)
+
+
+def verify_crud_pilot_readiness(
+    db_config: DatabaseConfig,
+    required_databases: list[str] | tuple[str, ...] = ("Redis", "MongoDB", "Cassandra", "Neo4j"),
+) -> dict[str, dict[str, Any]]:
+    """Verify that all required candidate CRUD databases are live and connected.
+
+    Raises RuntimeError if any required engine is FAILED or SKIPPED, preventing
+    an incomplete, scientifically invalid comparison.
+    """
+    from nosql_rag.adapters import check_crud_connections
+
+    statuses = check_crud_connections(db_config)
+    unconnected: list[str] = []
+
+    for db in required_databases:
+        info = statuses.get(db)
+        if not info:
+            unconnected.append(f"{db}: NOT_FOUND")
+        elif info.get("status") != "CONNECTED" or not info.get("connected"):
+            status_str = info.get("status", "UNKNOWN")
+            err = info.get("error") or "not connected"
+            unconnected.append(f"{db} ({status_str}: {err})")
+
+    if unconnected:
+        raise RuntimeError(
+            "Pilot execution gate failed: Not all required CRUD databases are CONNECTED.\n"
+            f"Unconnected required databases: {', '.join(unconnected)}.\n"
+            "All four CRUD databases (Redis, MongoDB, Cassandra, Neo4j) must report CONNECTED "
+            "before executing the pilot comparison. Please verify your credentials and network access."
+        )
+
+    return statuses
 
 
 def benchmark_neo4j_graph_traversal(

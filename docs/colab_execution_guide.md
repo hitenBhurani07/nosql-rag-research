@@ -98,39 +98,46 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
 - Run Cell 27 (`RUN_SMOKE_TEST = True`).
 - Offline gate: Tests CLI help invocation, experiment configuration loading, synthetic demo data generation (`data_provenance=synthetic_demo`), and dataset validator without requiring any live database connections.
 
-### Step 6: Run Pre-Flight Pilot Benchmark (Cells 28–33)
+### Step 6: Run Pre-Flight Pilot Benchmark (Cells 28–35)
 1. In Cell 4, set `RUN_PILOT = True`.
-2. Run Cells 29–33.
-   - Executes 2 workload profiles $\times$ available CRUD engines = pilot test runs (250 operations each).
-   - Expected output file: `data/raw/crud_benchmark_runs.csv`.
-   - Verifies that cleanup drops temporary benchmark tables/collections.
+2. Run Cell 35 (`Execute Pre-Flight Pilot Benchmark`).
+   - Gate verification: calls `verify_crud_pilot_readiness(db_config)`, checking that all 4 CRUD databases (Redis, MongoDB, Cassandra, Neo4j) report `CONNECTED`. If any is `FAILED` or `SKIPPED`, execution halts immediately.
+   - Executes 2 workload profiles $\times$ 4 candidate CRUD engines $\times$ 1 repetition = **8 genuine benchmark runs** (250 operations each, 20 warm-up operations excluded from latency measurement).
+   - Appends results directly to `data/raw/crud_benchmark_runs.csv` (`data_provenance=genuine_benchmark`).
+   - **Resume support:** If rerun, automatically skips already-completed `status='success'` runs, preventing duplicates.
+   - Displays full run metrics table and a separate summary breakdown of successful, partial, and failed runs.
 
-### Step 7: Run Vector & RAG Pilots (Cells 54–57)
-1. When Qdrant Cloud is provisioned, set `RUN_QDRANT_ANN_PILOT = True` in Cell 4 and run Cell 55.
-   - Seeds 2,000 vectors (128-d) and runs 100 ANN queries.
-   - Verifies HNSW collection creation, query latency, and Recall@K calculation against exact brute-force search.
-2. Set `RUN_BEIR_RAG = True` in Cell 4 and run Cell 57.
-   - Evaluates BEIR SciFact retrieval metrics (Recall@10, NDCG@10, MRR).
-
-### Step 8: Execute Full Matrix Benchmark (Cells 34–35)
+### Step 7: Execute Full Matrix Benchmark (Cells 36–37)
 1. Once the pilot passes cleanly, set `RUN_FULL_MATRIX = True` in Cell 4.
-2. Run Cell 35.
+2. Run Cell 37.
    - Executes workload profiles across engines $\times$ 3 repetitions in controlled batches.
    - Automatically appends results to `data/raw/crud_benchmark_runs.csv`.
-   - **Resume support:** If runtime disconnects, re-running Cell 35 checks existing successful runs and resumes pending configurations.
+   - **Resume support:** If runtime disconnects, re-running Cell 37 checks existing successful runs and resumes pending configurations.
 
-### Step 9: Data Validation & ML Training (Cells 36–47)
-1. Run Cell 37 (`validate_raw_runs`). Ensures zero duplicate runs, correct latency ordering ($p50 \le p95 \le p99$), and acceptable error rates ($\le 1\%$).
-2. Run Cell 39 (`derive_best_store_labels`). Aggregates median metrics and derives winning `best_store` labels. Output: `data/processed/labelled_workloads.csv`.
-3. Set `RUN_ML_TRAINING = True` in Cell 4 and run Cells 41–47.
+### Step 8: Data Validation & ML Training (Cells 38–49)
+1. Run Cell 39 (`validate_raw_runs`). Ensures zero duplicate runs, correct latency ordering ($p50 \le p95 \le p99$), zero synthetic contamination, and acceptable error rates ($\le 1\%$).
+2. Run Cell 41 (`derive_best_store_labels`). Aggregates median metrics and derives winning `best_store` labels. Output: `data/processed/labelled_workloads.csv`.
+3. Set `RUN_ML_TRAINING = True` in Cell 4 and run Cells 43–49.
    - Partitions profiles using leakage-safe `GroupShuffleSplit` (grouped by `workload_id`).
    - Fits Decision Tree, Random Forest, and Gradient Boosting.
    - Saves the best model to `results/models/best_nosql_recommender.joblib`.
 
-### Step 10: Regret Evaluation & Explainability (Cells 48–53)
-1. Run Cell 49 (`calculate_latency_regret`). Computes relative latency regret against the Oracle best feasible store.
-2. Set `RUN_SHAP = True` in Cell 4 and run Cell 51. Generates `results/figures/shap_summary.png`.
-3. Run Cell 53 (`recommend_database`). Tests two-stage inference on a new workload profile.
+### Step 9: Regret Evaluation & Explainability (Cells 50–55)
+1. Run Cell 51 (`calculate_latency_regret`). Computes relative latency regret against the Oracle best feasible store.
+2. Set `RUN_SHAP = True` in Cell 4 and run Cell 53. Generates `results/figures/shap_summary.png`.
+3. Run Cell 55 (`recommend_database`). Tests two-stage inference on a new workload profile.
 
-### Step 11: Export Experiment Artifacts (Cells 60–63)
-1. Run Cells 61–63 to package all raw runs, processed CSVs, trained models, and figures into `NoSQL_RAG_Research_Artifacts.zip`.
+### Step 10: Run Isolated Vector & Graph Pilots (Cells 56–61)
+1. When Qdrant Cloud is provisioned, set `RUN_QDRANT_ANN_PILOT = True` in Cell 4 and run Cell 57.
+   - Seeds 2,000 vectors (128-d) and runs 100 ANN queries.
+   - Verifies HNSW collection creation, query latency, and Recall@K calculation against exact brute-force search.
+   - Saves output to `data/raw/qdrant_ann_runs.json`.
+2. Set `RUN_BEIR_RAG = True` in Cell 4 and run Cell 59.
+   - Evaluates BEIR SciFact retrieval metrics (Recall@10, NDCG@10, MRR).
+   - Saves output to `data/raw/beir_scifact_qdrant_results.json`.
+3. Set `RUN_NEO4J_GRAPH_PILOT = True` in Cell 4 and run Cell 61.
+   - Runs native multi-hop graph neighbor traversal ($k$-hop, $k=2$) across 200 nodes and 600 `:LINKS_TO` relationships.
+   - Saves output to `data/raw/neo4j_graph_traversal_runs.json` (never mixed into the CRUD dataset).
+
+### Step 11: Export Experiment Artifacts (Cells 64–67)
+1. Run Cells 65–67 to package all raw runs, processed CSVs, trained models, and figures into `NoSQL_RAG_Research_Artifacts.zip`.

@@ -96,11 +96,28 @@ Enter secrets per [docs/infrastructure/credential_setup_guide.md](file:///c:/Use
 
 ---
 
+### Step 8: Execute Pre-Flight Pilot Benchmark (Cell 35)
+- When all 4 CRUD databases (Redis, MongoDB, Cassandra, Neo4j) are live and report `CONNECTED`:
+  - Set `RUN_PILOT = True` in Cell 4.
+  - Run **Cell 35**.
+  - Cell 35 runs `verify_crud_pilot_readiness(db_config)` to confirm all 4 engines are CONNECTED before benchmarking.
+  - Executes 2 profiles $\times$ 4 engines $\times$ 1 repetition = **8 genuine benchmark runs** (250 operations each, 20 warm-up operations excluded).
+  - Appends to `data/raw/crud_benchmark_runs.csv` and displays the full metrics table and summary.
+  - Resume support ensures re-running skips already-successful runs.
+
+### Step 9: Isolated Vector and Graph Pilots (Cells 57, 59, 61)
+- **Cell 57 (Qdrant ANN):** `RUN_QDRANT_ANN_PILOT = True` -> evaluates vector recall and query latency (`qdrant_ann_runs.json`).
+- **Cell 59 (BEIR SciFact):** `RUN_BEIR_RAG = True` -> evaluates passage retrieval metrics (`beir_scifact_qdrant_results.json`).
+- **Cell 61 (Neo4j Graph Traversal):** `RUN_NEO4J_GRAPH_PILOT = True` -> evaluates native $k$-hop traversal (`neo4j_graph_traversal_runs.json`). Results are never mixed into the CRUD dataset.
+
+---
+
 ## 3. Important Experiment Safeguards
 
-1. **Pilot Matrix Barrier:** The 8-run CRUD pilot requires all 4 CRUD engines (Redis, MongoDB, Cassandra, Neo4j). Do NOT enable `RUN_PILOT = True` until Neo4j is provisioned in a subsequent phase.
-2. **Qdrant Vector Barrier:** Qdrant ANN and BEIR SciFact experiments require `QDRANT_URL` and `QDRANT_API_KEY`. Keep `RUN_QDRANT_ANN_PILOT = False` and `RUN_BEIR_RAG = False`.
-3. **Storage Hygiene:** No database records are created during connection checks. Preflight executes non-destructive pings (`PING`, `ping`, and CQL version lookups).
+1. **Pilot Matrix Barrier:** The 8-run CRUD pilot requires all 4 CRUD engines (Redis, MongoDB, Cassandra, Neo4j) to be `CONNECTED`. If any engine is `FAILED` or `SKIPPED`, the readiness gate raises `RuntimeError` and halts execution.
+2. **Qdrant Vector Isolation:** Qdrant ANN and BEIR SciFact experiments output to separate JSON files and never pollute `crud_benchmark_runs.csv`.
+3. **Neo4j Graph Traversal Isolation:** Native graph traversal is evaluated independently in Cell 61 and persists to `neo4j_graph_traversal_runs.json`.
+4. **Storage Hygiene:** Preflight executes non-destructive pings (`PING`, `ping`, CQL version lookups, and Cypher `LIMIT 1` component lookups). Benchmark runs clean up temporary collections/tables automatically when `CLEANUP_AFTER_RUN = True`.
 
 ---
 
