@@ -139,6 +139,18 @@ docker stop nosql-rag-mongo
 uv run python scripts/run_dual_evaluation.py
 ```
 
+### 4.4 Running the Research Dashboard (Web UI)
+The repository includes an interactive Streamlit research dashboard that operates completely offline (no Docker containers or live databases required):
+
+```powershell
+# 1. Sync dependencies
+uv sync
+
+# 2. Launch the dashboard
+uv run streamlit run src/nosql_rag/dashboard/app.py
+```
+Open your browser at **http://localhost:8501** to interact with the 7 research tabs (Pattern Recommender with SHAP, Compatibility Matrix, CRUD Benchmark Explorer, Models & SHAP, Latency Regret, Retrieval & Graph, Methodology).
+
 ---
 
 ## 5. Research Integrity & Data Provenance

@@ -33,3 +33,18 @@
   - Sanity pilot passed: W0001 P50=0.561 ms, W0002 P50=0.690 ms, nodetool proxyhistograms write 50%=258us, read 50%=179us.
   - Matrix stats: 228 successful runs, 0 errors. P50 median: 0.613 ms, P95 median: 1.133 ms. OOMKilled: false.
   - Container stopped. Free RAM: 2.05 GB. Total genuine runs in CSV: 1,128.
+
+---
+
+## Dashboard Fix Checkpoint
+
+- **Step**: Audit, fix, and verify Streamlit research dashboard (`src/nosql_rag/dashboard/app.py`).
+- **Status**: COMPLETED.
+- **Evidence**:
+  - `docs/DASHBOARD_AUDIT.md`: 7-tab audit recorded.
+  - `src/nosql_rag/dashboard/app.py`: Updated relative paths to `REPO_ROOT`, cached data/model loaders, fixed figures path to `reports/figures/`, added provenance breakdown (1,356 genuine, 900 host pilot, 8 cloud, 5 invalid), added Analysis A & B selectors with degenerate-classifier note, added Qdrant/BEIR cards with "host-path, not comparable" labels, added Neo4j traversal cards, and updated methodology with Windows port-forwarding hypothesis and $c=4$ multiprocessing findings.
+  - `tests/unit/test_dashboard_smoke.py`: 3 tests passed (`test_dashboard_renders_without_exceptions`, `test_dashboard_recommender_end_to_end_default`, `test_dashboard_recommender_vector_similarity`). Full suite: 47 passed.
+  - `ruff`: `uv run ruff check .` passed with 0 errors.
+  - Health check: `curl.exe http://localhost:8501/_stcore/health` returned `ok`.
+  - Verified 3 numbers: Total genuine runs = 1,356; BEIR Recall@10 = 0.7833; Label distribution Analysis A = Redis: 149 / MongoDB: 1.
+- **Next Step**: Commit, push, and output final report.
