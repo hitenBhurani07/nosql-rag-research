@@ -279,6 +279,56 @@ with tab_rec:
                             )
                             st.bar_chart(prob_df.set_index("Database"), y="Probability")
 
+                    if not runs_df.empty and "data_provenance" in runs_df.columns:
+                        genuine_runs = runs_df[runs_df["data_provenance"] == "genuine_benchmark"]
+                        if not genuine_runs.empty and result["stage"] == "stage_2_ml_performance_selection":
+                            st.markdown("#### Live Measured Latency Comparison for Your Workload Profile")
+                            avail_p = sorted(genuine_runs["payload_bytes"].dropna().unique())
+                            avail_r = sorted(genuine_runs["read_ratio"].dropna().unique())
+                            avail_c = sorted(genuine_runs["concurrency"].dropna().unique())
+
+                            closest_p = min(avail_p, key=lambda x: abs(x - payload_bytes))
+                            closest_r = min(avail_r, key=lambda x: abs(x - read_ratio))
+                            closest_c = min(avail_c, key=lambda x: abs(x - concurrency))
+
+                            matched_slice = genuine_runs[
+                                (genuine_runs["payload_bytes"] == closest_p)
+                                & (genuine_runs["read_ratio"] == closest_r)
+                                & (genuine_runs["concurrency"] == closest_c)
+                            ]
+
+                            if not matched_slice.empty:
+                                st.caption(
+                                    f"Dynamic benchmark slice matching your inputs: **{closest_p} B payload**, "
+                                    f"**{int(closest_r * 100)}% read ratio**, **c={closest_c} concurrency**."
+                                )
+                                lat_agg = (
+                                    matched_slice.groupby("database")[["p50_latency_ms", "p95_latency_ms"]]
+                                    .median()
+                                    .reset_index()
+                                )
+                                best_p95 = lat_agg["p95_latency_ms"].min()
+                                lat_agg["Latency Penalty vs Winner"] = lat_agg["p95_latency_ms"].apply(
+                                    lambda v: "0.00% (Winner)"
+                                    if v == best_p95
+                                    else f"+{((v - best_p95) / best_p95) * 100:.1f}% slower"
+                                )
+                                lat_agg.columns = [
+                                    "Database",
+                                    "Median P50 (ms)",
+                                    "Median P95 (ms)",
+                                    "Latency Penalty vs Winner",
+                                ]
+                                st.dataframe(lat_agg, width="stretch", hide_index=True)
+
+                                col_c1, col_c2 = st.columns(2)
+                                with col_c1:
+                                    st.markdown("##### Median P95 Latency (ms) — Lower is Better")
+                                    st.bar_chart(lat_agg.set_index("Database")["Median P95 (ms)"])
+                                with col_c2:
+                                    st.markdown("##### Median P50 Latency (ms) — Lower is Better")
+                                    st.bar_chart(lat_agg.set_index("Database")["Median P50 (ms)"])
+
                     if pipeline is not None and result["stage"] == "stage_2_ml_performance_selection":
                         st.markdown("#### Instance-Level SHAP Feature Attribution")
                         try:
@@ -410,23 +460,67 @@ with tab_benchmarks:
         )
         st.dataframe(prov_summary, width="stretch", hide_index=True)
 
-        st.markdown("#### 3. Latency Distribution by Engine and Concurrency ($c=1$ vs $c=4$)")
-        if {"p50_latency_ms", "p95_latency_ms", "database", "concurrency"}.issubset(genuine_df.columns):
-            latency_summary = (
-                genuine_df.groupby(["database", "concurrency"])
+        st.markdown("#### 3. Interactive Parameter Slice & Live Benchmark Visualization")
+        st.caption("Select parameters below to dynamically filter benchmark runs and watch the charts re-render live:")
+
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            filter_concurrency = st.radio(
+                "Filter Concurrency",
+                options=["All Concurrencies", "c=1 (Sequential)", "c=4 (Multiprocessing)"],
+                horizontal=True,
+            )
+        with col_f2:
+            avail_payloads = sorted(genuine_df["payload_bytes"].dropna().unique())
+            filter_payloads = st.multiselect(
+                "Filter Payload Size",
+                options=avail_payloads,
+                default=avail_payloads,
+                format_func=lambda x: f"{x} Bytes",
+            )
+        with col_f3:
+            avail_reads = sorted(genuine_df["read_ratio"].dropna().unique())
+            filter_reads = st.multiselect(
+                "Filter Read Ratio",
+                options=avail_reads,
+                default=avail_reads,
+                format_func=lambda x: f"{int(x * 100)}% Read",
+            )
+
+        # Apply user filters
+        sliced_df = genuine_df.copy()
+        if filter_concurrency == "c=1 (Sequential)":
+            sliced_df = sliced_df[sliced_df["concurrency"] == 1]
+        elif filter_concurrency == "c=4 (Multiprocessing)":
+            sliced_df = sliced_df[sliced_df["concurrency"] == 4]
+
+        if filter_payloads:
+            sliced_df = sliced_df[sliced_df["payload_bytes"].isin(filter_payloads)]
+        if filter_reads:
+            sliced_df = sliced_df[sliced_df["read_ratio"].isin(filter_reads)]
+
+        if not sliced_df.empty:
+            slice_summary = (
+                sliced_df.groupby("database")
                 .agg(
                     median_p50_ms=("p50_latency_ms", "median"),
                     median_p95_ms=("p95_latency_ms", "median"),
-                    runs=("run_id", "count"),
+                    median_throughput_ops=("throughput_ops_sec", "median"),
+                    matching_runs=("run_id", "count"),
                 )
                 .reset_index()
             )
-            st.dataframe(latency_summary, width="stretch", hide_index=True)
+            st.dataframe(slice_summary, width="stretch", hide_index=True)
 
-            p95_pivot = latency_summary.pivot(index="database", columns="concurrency", values="median_p95_ms")
-            p95_pivot.columns = [f"c={col} (P95 ms)" for col in p95_pivot.columns]
-            st.bar_chart(p95_pivot)
-            st.caption("P95 latency in milliseconds. Notice Redis's sub-0.2 ms memory speed across both concurrencies.")
+            col_ch1, col_ch2 = st.columns(2)
+            with col_ch1:
+                st.markdown("##### Dynamic Median P95 Latency (ms) — Lower is Better")
+                st.bar_chart(slice_summary.set_index("database")["median_p95_ms"])
+            with col_ch2:
+                st.markdown("##### Dynamic Median Throughput (ops/sec) — Higher is Better")
+                st.bar_chart(slice_summary.set_index("database")["median_throughput_ops"])
+        else:
+            st.info("No benchmark runs match the selected parameter filter.")
 
         with st.expander("Explore Raw Filtered Run Records"):
             selected_dbs = st.multiselect(
@@ -553,18 +647,24 @@ with tab_regret:
             st.dataframe(sub_reg[display_cols], width="stretch", hide_index=True)
 
         with col_reg_chart:
-            reg_fig_name = (
-                "latency_regret_2-engine_(redis_+_mongodb,_150_profiles).png"
-                if "2-Engine" in sel_reg_analysis
-                else "latency_regret_4-engine_(redis_+_mongodb_+_cassandra_+_neo4j,_76_profiles).png"
-            )
-            reg_fig_path = FIGURES_PATH / reg_fig_name
-            if not reg_fig_path.exists():
-                reg_fig_path = FIGURES_PATH / "latency_regret.png"
-            if reg_fig_path.exists():
-                st.image(str(reg_fig_path), caption=f"Latency Regret Distribution ({reg_key})", width="stretch")
-            else:
-                st.info(f"Regret plot not found: `{reg_fig_path}`")
+            st.markdown(f"#### Strategy Latency Overhead vs Oracle ({reg_key})")
+            reg_chart_data = sub_reg.set_index("strategy")[["mean_regret", "median_regret"]]
+            reg_chart_data.columns = ["Mean Regret Multiplier", "Median Regret Multiplier"]
+            st.bar_chart(reg_chart_data)
+
+            with st.expander("View Publication Density Plot", expanded=False):
+                reg_fig_name = (
+                    "latency_regret_2-engine_(redis_+_mongodb,_150_profiles).png"
+                    if "2-Engine" in sel_reg_analysis
+                    else "latency_regret_4-engine_(redis_+_mongodb_+_cassandra_+_neo4j,_76_profiles).png"
+                )
+                reg_fig_path = FIGURES_PATH / reg_fig_name
+                if not reg_fig_path.exists():
+                    reg_fig_path = FIGURES_PATH / "latency_regret.png"
+                if reg_fig_path.exists():
+                    st.image(str(reg_fig_path), caption=f"Latency Regret Distribution ({reg_key})", width="stretch")
+                else:
+                    st.info(f"Regret plot not found: `{reg_fig_path}`")
     else:
         st.warning(f"Regret table not available at `{REGRET_TABLE_PATH}`.")
 
