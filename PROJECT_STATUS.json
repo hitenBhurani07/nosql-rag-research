@@ -3,7 +3,8 @@
   "status": "COMPLETED",
   "author": "Hiten Bhurani",
   "hardware_environment": {
-    "os": "Windows 11 Home",
+    "os": "Microsoft Windows 11 Home Single Language (Build 26300, 64-bit)",
+    "python": "3.12.13 (uv environment) / 3.14.0 (host)",
     "cpu": "Intel Core i5-12500H (12 cores / 16 threads)",
     "ram_gb": 16,
     "storage": "NVMe SSD",
@@ -35,7 +36,8 @@
       "queries": 100,
       "mean_recall_at_10": 1.0,
       "p50_query_latency_ms": 15.073,
-      "p95_query_latency_ms": 26.875
+      "p95_query_latency_ms": 26.875,
+      "latency_measurement_placement": "host-path, not comparable to in-container CRUD latencies"
     },
     "neo4j_graph_traversal": {
       "nodes": 200,
@@ -44,7 +46,8 @@
       "depth": 2,
       "throughput_ops_sec": 270.39,
       "p50_latency_ms": 2.989,
-      "p95_latency_ms": 4.095
+      "p95_latency_ms": 4.095,
+      "scope": "small demonstration graph (200 nodes)"
     },
     "beir_scifact_rag": {
       "dataset": "scifact",
@@ -53,10 +56,12 @@
       "ndcg_at_10": 0.6451,
       "mrr": 0.6047,
       "p50_query_latency_ms": 15.323,
-      "p95_query_latency_ms": 27.442
+      "p95_query_latency_ms": 27.442,
+      "latency_measurement_placement": "host-path, not comparable to in-container CRUD latencies"
     }
   },
   "machine_learning": {
+    "evaluation_note": "Test sets contain single class (Redis); 1.0000 metrics match majority baseline with no learnable multi-class signal in single-key CRUD",
     "analysis_a_2_engine_150_profiles": {
       "train_workloads": 120,
       "test_workloads": 30,

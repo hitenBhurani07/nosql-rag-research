@@ -3,7 +3,7 @@
 **Author**: Hiten Bhurani  
 **Date**: November 2026  
 **Repository**: `C:\Users\hiten\nosql-rag-research`  
-**Hardware Environment**: Windows 11 Home, Intel Core i5-12500H (12 physical cores, 16 threads), 16 GB Physical RAM, NVMe SSD, Python 3.12, Docker Desktop with WSL2 capped at 3 GB memory.  
+**Hardware Environment**: Microsoft Windows 11 Home Single Language (Build 26300, 64-bit), Intel Core i5-12500H (12 physical cores, 16 threads), 16 GB Physical RAM, NVMe SSD, Python 3.12.13 (uv environment) / Python 3.14.0 (host), Docker Desktop with WSL2 capped at 3 GB memory.  
 
 ---
 
@@ -15,7 +15,7 @@ This research project designs, implements, and experimentally validates an **end
 
 ### Key Milestones & Findings
 1. **Flawed Measurement Path Uncovered & Resolved**:
-   - Host-based loopback port forwarding on Windows WSL2 introduced a ~0.25 ms socket queueing delay and ~40 ms delayed-ACK stalls on payloads $\ge 4\text{ KB}$.
+   - Host-based loopback port forwarding on Windows WSL2 introduced socket queueing overhead and ~40 ms stalls on payloads $\ge 4\text{ KB}$ (hypothesized to be WSL2 hypervisor TCP segmentation and delayed-ACK buffering on multi-segment frames).
    - This network artifact flipped the ground-truth P95 latency winner on **42.67% of workloads** (64 / 150 profiles).
    - Replaced host execution with a pinned in-container compose-network client (`nosql-rag-client:1.0`), unlocking true sub-millisecond local NVMe latencies across all engines.
 2. **$c=4$ Concurrency Validity Verification**:
@@ -28,11 +28,12 @@ This research project designs, implements, and experimentally validates an **end
    - **Neo4j**: 228 runs (76 profiles $\times$ 3 reps, 0 errors, median P50: 0.902 ms, P95: 3.269 ms).
 4. **Empirical Distribution & Machine Learning Evaluation**:
    - In pure single-key CRUD access, in-memory Redis naturally outperforms document, wide-column, and property graph stores across nearly all tested configurations (149/150 wins in 2-engine, 76/76 in 4-engine).
+   - Because the held-out test sets contain a single class (`Redis`), the 1.0000 Test Accuracy and Macro-F1 scores are degenerate: the ML models only match the majority baseline, and there is no learnable multi-class signal in single-key CRUD.
    - Unanimous 3-repetition winner stability: **98.67%** (2-engine) and **100.00%** (4-engine).
-   - ML recommenders (Decision Tree, Random Forest, Gradient Boosting) achieve 1.0000 held-out accuracy and Macro-F1, matching the Majority-class baseline with **0.00% latency regret** vs. Oracle. Single-store defaults incur severe latency penalties: MongoDB incurs +206.82% regret, Cassandra +576.10%, and Neo4j +1,770.67%.
+   - Regret analysis: Defaulting to Redis incurs 0.00% latency regret vs Oracle. Single-store alternatives incur severe latency penalties: MongoDB incurs +206.82% regret, Cassandra +576.10%, and Neo4j +1,770.67%.
 5. **Full RAG Passage Retrieval & Vector Search (BEIR SciFact)**:
-   - Evaluated all 300 test queries of BEIR SciFact on Qdrant: **Recall@10 = 0.7833**, **NDCG@10 = 0.6451**, **MRR = 0.6047**, with P50 search latency of 15.32 ms.
-   - Native Qdrant ANN search achieved **100.0% Recall@10** on 2,000 vectors with P50 latency of 15.07 ms.
+   - Evaluated all 300 test queries of BEIR SciFact on Qdrant: **Recall@10 = 0.7833**, **NDCG@10 = 0.6451**, **MRR = 0.6047**, with P50 search latency of 15.32 ms (host-path, not comparable to in-container CRUD latencies).
+   - Native Qdrant ANN search achieved **100.0% Recall@10** on 2,000 vectors with P50 latency of 15.07 ms (host-path, not comparable).
 
 ---
 
@@ -57,19 +58,24 @@ Payload Size | Write P50 (ms) | Write P95 (ms) | Read P50 (ms) | Read P95 (ms)
 To diagnose whether this was engine cost or network infrastructure, internal server diagnostics were queried:
 ```text
 docker exec nosql-rag-cassandra nodetool proxyhistograms
-Percentile | Read Latency (micros) | Write Latency (micros)
-50%        | 215 us (0.215 ms)     | 149 us (0.149 ms)
-95%        | 535 us (0.535 ms)     | 372 us (0.372 ms)
-Min        | 61 us                 | 51 us
+Percentile       Read Latency      Write Latency      Range Latency   CAS Read Latency  CAS Write Latency View Write Latency
+                     (micros)           (micros)           (micros)           (micros)           (micros)           (micros)
+50%                    179.00             258.00            1109.00               0.00               0.00               0.00
+75%                    215.00             310.00            1916.00               0.00               0.00               0.00
+95%                    924.00            2299.00            3973.00               0.00               0.00               0.00
+98%                   1916.00            2759.00            3973.00               0.00               0.00               0.00
+99%                   2299.00            3311.00            3973.00               0.00               0.00               0.00
+Min                     30.00              30.00             373.00               0.00               0.00               0.00
+Max                   2759.00            5722.00            3973.00               0.00               0.00               0.00
 ```
-Cassandra's internal storage engine required only **$149\,\mu\text{s}$ (0.15 ms)** for writes. The remaining **~47.8 ms** was verified as a network relay artifact on Windows host loopback port forwarding (hypothesized as TCP segmentation and delayed-ACK buffering across the WSL2 hypervisor boundary for multi-segment frames $> 1,460\text{ B}$).
+Cassandra's internal storage engine required a median of only **$258\,\mu\text{s}$ (0.258 ms)** for writes. The remaining **~47.7 ms** measured by the host client was identified as an artifact of host-to-container port forwarding. The working hypothesis is that Windows WSL2 hypervisor loopback relaying introduces packet segmentation and delayed-ACK buffering on multi-segment TCP frames ($> 1,460\text{ B}$).
 
 ### 1.2 Pinned In-Container Benchmark Architecture
 To eliminate host virtualization artifacts, all benchmarks were transitioned to an internal compose-network client:
 - Pinned image `nosql-rag-client:1.0` (Debian Linux, Python 3.11, driver versions pinned).
 - Direct container-to-container communication over bridge network `nosql-rag-research_default`.
 - Client limits: `cpus=2.0`, `mem=1024m`.
-- Result: 8KB Cassandra writes dropped from **48.0 ms to 0.491 ms (a 98x speedup)**, matching server-side proxyhistograms ($0.15\text{ ms}$ server + $0.34\text{ ms}$ local container round trip).
+- Result: 8KB Cassandra writes dropped from **48.0 ms to 0.491 ms (a 98x speedup)**, confirming that server-side write latency (median 258 $\mu$s in `nodetool proxyhistograms`) was never the bottleneck.
 
 ### 1.3 Concurrency Validity Verification ($c=4$: Threading vs. Multiprocessing)
 To test whether client concurrency was bottlenecked by Python's Global Interpreter Lock (GIL), a 10-workload sweep at $c=4$ was performed comparing `ThreadPoolExecutor` with a dedicated `multiprocessing` worker pool:
@@ -94,7 +100,7 @@ Multiprocessing eliminated single-process socket serialization, reducing P95 lat
 Evaluating all 150 matched profiles revealed that host-based measurements flipped the ground truth winner on **64 out of 150 workloads (42.67%)**:
 - **Host Pilot Labels**: Redis: 85 (56.7%), MongoDB: 65 (43.3%).
 - **In-Container Genuine Labels**: Redis: 149 (99.3%), MongoDB: 1 (0.7%).
-- **Cause**: Host port proxying imposed a ~0.25 ms fixed overhead per operation. On $c=1$ read workloads, this fixed delay masked Redis's raw memory-speed advantage (~0.08 ms P50, ~0.16 ms P95) and created artificial wins for MongoDB. Under direct network evaluation, Redis consistently prevailed.
+- **Mechanism (Hypothesis)**: Host port proxying across the Windows/WSL2 boundary imposed socket queueing overhead per operation. On $c=1$ read workloads, this delay masked Redis's raw memory-speed advantage (~0.08 ms P50, ~0.16 ms P95) and created artificial wins for MongoDB. Under direct network evaluation, Redis consistently prevailed.
 - **Quarantine Action**: The earlier 900 host-path runs were reclassified as `data_provenance = 'host_port_forward_pilot'` and excluded from ML training.
 
 ---
@@ -160,6 +166,8 @@ Feature sets excluded never-varied attributes (`vector_dimensions`, `top_k`, `gr
 | | Random Forest | 1.0000 | 1.0000 | 1.0000 ($\pm 0.0000$) |
 | | Gradient Boosting | 1.0000 | 1.0000 | 1.0000 ($\pm 0.0000$) |
 
+> **Degenerate Classifier Evaluation Note**: In both Analysis A and Analysis B, the held-out test sets contain a single class (`Redis`). Consequently, the 1.0000 Test Accuracy and Macro-F1 scores are mathematically degenerate: the trained machine learning models merely match the majority-class baseline. Because in-memory Redis uniformly dominates disk-backed and distributed engines across all single-key configurations, there is **no learnable multi-class signal** in scalar CRUD workloads.
+
 ### 3.2 Latency Regret Analysis vs. Baselines & Oracle
 
 Latency regret measures the relative latency penalty incurred when deploying an engine relative to the Oracle:
@@ -190,7 +198,7 @@ Always-Neo4j                     | 1770.67%    | 1611.69%      | 2644.25%
 ```
 
 ### 3.3 Empirical Takeaway on Class Diversity & Operational CRUD
-In single-key CRUD workloads, an in-memory key-value engine (Redis) consistently dominates disk-backed and distributed engines. When measured accurately without host network distortions, class diversity in single-key CRUD is non-existent. Rather than synthesizing artificial workloads or tuning parameters to force diversity, this research plainly reports this as an authoritative empirical finding:
+In single-key CRUD workloads, an in-memory key-value engine (Redis) consistently dominates disk-backed and distributed engines. When measured accurately without host network distortions, class diversity in single-key CRUD is non-existent (test sets contain exclusively the Redis class, producing degenerate 1.0000 metrics where models only replicate the majority baseline with no learnable multi-class signal). Rather than synthesizing artificial workloads or tuning parameters to force diversity, this research plainly reports this as an authoritative empirical finding:
 * **Recommendation for Single-Key RAG Operational State**: Defaulting to Redis incurs 0.00% latency regret. Deploying MongoDB adds 2.06x latency overhead, Cassandra adds 5.76x overhead, and Neo4j adds 17.7x overhead.
 * **Workload Specialization Boundary**: Database differentiation occurs along access pattern dimensions beyond single-key CRUD—specifically range scans, secondary index filtering, graph traversal, and high-dimensional vector search.
 
@@ -203,17 +211,19 @@ Qdrant was benchmarked on the complete biomedical claim verification benchmark (
 - **Corpus**: 5,183 scientific abstracts.
 - **Encoder**: `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions, cosine distance).
 - **Test Queries Evaluated**: All 300 benchmark queries (`max_queries=None`).
-- **Results**:
+- **Information Retrieval Metrics**:
   - **Recall@10**: **0.7833**
   - **NDCG@10**: **0.6451**
   - **MRR**: **0.6047**
+- **Query Latencies** *(measured from host client; labeled as host-path, not comparable to in-container CRUD latencies)*:
   - **P50 Query Latency**: **15.32 ms**
   - **P95 Query Latency**: **27.44 ms**
 
 ### 4.2 Native Vector Indexing (Qdrant ANN)
 - **Dataset**: 2,000 synthetic 128-dimensional dense vectors, top-$k=10$.
 - **Exact Search Recall@10**: **1.0000 (100.0%)**
-- **P50 Latency**: **15.07 ms** | **P95 Latency**: **26.88 ms**
+- **Search Latencies** *(host-path, not comparable to in-container CRUD latencies)*:
+  - **P50 Latency**: **15.07 ms** | **P95 Latency**: **26.88 ms**
 
 ### 4.3 Graph Traversal (Neo4j)
 To capture graph-native access patterns not represented in scalar CRUD, multi-hop neighbor traversal was evaluated:
@@ -233,7 +243,7 @@ Historical Flawed Host-Path Pilot Results (DO NOT USE FOR PRODUCTION):
 - Data Provenance Tag: host_port_forward_pilot (900 rows in data/raw/crud_benchmark_runs.csv)
 - Host Cross-Validation Macro-F1: 0.8245 (flawed due to 42.67% label error from host proxy latency)
 - Host Latency Regret: 4.33% (flawed due to artificial MongoDB wins)
-- Root Cause: Windows WSL2 port-forwarding relay buffering multi-segment TCP frames.
+- Root Cause Hypothesis: Windows WSL2 port-forwarding relay buffering multi-segment TCP frames.
 ```
 
 ---
@@ -244,6 +254,8 @@ Historical Flawed Host-Path Pilot Results (DO NOT USE FOR PRODUCTION):
 2. **Sequential Container Execution**: To strictly respect the 3 GB WSL2 memory cap on a 16 GB host, engines were benchmarked sequentially. Concurrent resource contention between multiple active database engines was not evaluated.
 3. **Sub-Millisecond Sensitivity**: When latencies operate below 1 ms, driver socket serialization and serialization formats (BSON vs. RESP vs. CQL vs. Bolt) represent substantial fractions of total elapsed time.
 4. **CRUD Pattern Scope**: Workloads were restricted to single-key point reads and updates. Patterns where Cassandra (high-throughput append logging) or MongoDB (flexible document filtering) offer architectural advantages require multi-field or range-scan query definitions.
+5. **Untuned Default Configurations with Constrained JVM Heaps**: Both Cassandra and Neo4j operated with default, untuned database settings and constrained 512 MB JVM heaps (`MAX_HEAP_SIZE=512M`, `HEAP_NEWSIZE=128M` for Cassandra; initial/max heap `512M`, pagecache `128M` for Neo4j) to respect the tight WSL2 memory cap. In production deployments, multi-gigabyte heaps, OS page-cache caching, and specialized engine tuning will alter absolute latencies and throughput ceilings.
+6. **Small-Scale Graph Topology**: The Neo4j graph traversal evaluation was performed on a synthetic demonstration graph of 200 nodes and 600 edges. Real-world RAG knowledge graphs often encompass millions of entities and relationships, where index-free adjacency provides more pronounced performance divergence relative to relational or document stores.
 
 ---
 

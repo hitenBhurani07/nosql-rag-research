@@ -8,7 +8,7 @@ A research system and explainable machine-learning framework that recommends app
 
 **Author**: Hiten Bhurani (`2023.hiten.bhurani@ves.ac.in`)  
 **Repository**: [https://github.com/hitenBhurani07/nosql-rag-research](https://github.com/hitenBhurani07/nosql-rag-research)  
-**Hardware Environment**: Windows 11 Home, Intel Core i5-12500H (12 physical cores, 16 threads), 16 GB RAM, NVMe SSD, Docker Desktop with WSL2 capped at 3GB RAM.
+**Hardware Environment**: Microsoft Windows 11 Home Single Language (Build 26300, 64-bit), Intel Core i5-12500H (12 physical cores, 16 threads), 16 GB Physical RAM, NVMe SSD, Python 3.12.13 (uv environment) / Python 3.14.0 (host), Docker Desktop with WSL2 capped at 3 GB RAM.
 
 ---
 
@@ -31,15 +31,15 @@ NoSQL store selection has historically relied on qualitative rules of thumb or v
   - **Neo4j**: 228 runs (76 profiles $\times$ 3 reps, median P50: 0.902 ms, P95: 3.269 ms).
 - **Repetition Winner Stability**: **98.67%** unanimous 3-repetition agreement on 2-engine (150 profiles), **100.00%** on 4-engine (76 profiles).
 - **Dual Machine Learning Analysis**:
-  - **Analysis A (2 Engines, 150 Profiles)**: In pure single-key CRUD, in-memory Redis dominates (149/150 wins). Decision Tree, Random Forest, and Gradient Boosting achieve 1.0000 test accuracy and Macro-F1, matching the Majority-class baseline with **0.00% latency regret** vs. Oracle. Deploying Always-MongoDB incurs **206.82%** mean regret.
-  - **Analysis B (4 Engines, 76 Profiles)**: Redis wins 76/76 profiles. Recommenders achieve 1.0000 accuracy / Macro-F1. Deploying Always-MongoDB incurs +264.39% regret, Always-Cassandra +576.10% regret, and Always-Neo4j +1770.67% regret.
+  - **Analysis A (2 Engines, 150 Profiles)**: In pure single-key CRUD, in-memory Redis dominates (149/150 wins). Decision Tree, Random Forest, and Gradient Boosting achieve 1.0000 test accuracy and Macro-F1 (degenerate due to single-class Redis test set, with no learnable multi-class signal), matching the Majority-class baseline with **0.00% latency regret** vs. Oracle. Deploying Always-MongoDB incurs **206.82%** mean regret.
+  - **Analysis B (4 Engines, 76 Profiles)**: Redis wins 76/76 profiles. Recommenders achieve 1.0000 accuracy / Macro-F1 (degenerate single-class Redis test set). Deploying Always-MongoDB incurs +264.39% regret, Always-Cassandra +576.10% regret, and Always-Neo4j +1770.67% regret.
 - **Methodology Finding (Windows Port-Forwarding Artifact)**:
-  - Host loopback proxying imposed a ~0.25 ms socket overhead that flipped ground truth winners on **42.67% of workloads** (64 / 150 profiles). Earlier 900 host-measured runs are quarantined as `data_provenance = 'host_port_forward_pilot'` and excluded from ML models.
+  - Host loopback proxying imposed socket queueing overhead that flipped ground truth winners on **42.67% of workloads** (64 / 150 profiles). The working hypothesis is that WSL2 loopback relaying introduces TCP packet segmentation and delayed-ACK stalls on payloads $\ge 4\text{ KB}$. Earlier 900 host-measured runs are quarantined as `data_provenance = 'host_port_forward_pilot'` and excluded from ML models.
 - **$c=4$ Concurrency Validity**:
   - Python multi-threading suffered an 80.64% queueing penalty under $c=4$. Switching to process multiprocessing increased throughput 4.25x (from 4,580 to 19,490 ops/s) and dropped Redis P95 from 1.375 ms to 0.266 ms.
 - **Specialized Vector & Graph Evaluation**:
-  - **BEIR SciFact RAG Retrieval (All 300 Queries)**: **0.7833 Recall@10**, **0.6451 NDCG@10**, **0.6047 MRR**, with 15.32 ms P50 search latency.
-  - **Native Qdrant ANN**: **100.0% Recall@10** on 2,000 vectors with 15.07 ms P50 latency.
+  - **BEIR SciFact RAG Retrieval (All 300 Queries)**: **0.7833 Recall@10**, **0.6451 NDCG@10**, **0.6047 MRR**, with 15.32 ms P50 search latency (host-path client, not comparable to in-container CRUD latencies).
+  - **Native Qdrant ANN**: **100.0% Recall@10** on 2,000 vectors with 15.07 ms P50 latency (host-path, not comparable).
   - **Neo4j Graph Traversal**: 100 queries at 2-hop depth, 270.4 ops/s, P50 latency: **2.99 ms**, P95: **4.09 ms**.
 
 ---

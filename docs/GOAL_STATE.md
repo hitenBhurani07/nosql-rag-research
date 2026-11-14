@@ -30,6 +30,6 @@
   - In-container label distribution: Redis = 149 (99.3%), MongoDB = 1 (0.7%). Host port-forwarding bias hypothesis confirmed empirically.
 
 - **T0+57m (17:31:56)**: Completed Cassandra 228 genuine runs (76 profiles x 3 reps).
-  - Sanity pilot passed: W0001 P50=0.561 ms, W0002 P50=0.690 ms, nodetool proxyhistograms write 50%=149us, read 50%=215us.
+  - Sanity pilot passed: W0001 P50=0.561 ms, W0002 P50=0.690 ms, nodetool proxyhistograms write 50%=258us, read 50%=179us.
   - Matrix stats: 228 successful runs, 0 errors. P50 median: 0.613 ms, P95 median: 1.133 ms. OOMKilled: false.
   - Container stopped. Free RAM: 2.05 GB. Total genuine runs in CSV: 1,128.
