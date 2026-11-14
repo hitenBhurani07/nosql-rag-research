@@ -1,0 +1,66 @@
+{
+  "project_title": "ML-Driven NoSQL Pattern Selection for Retrieval-Augmented Generation Workloads",
+  "status": "COMPLETED",
+  "plan": "MINIMAL",
+  "hardware_environment": {
+    "os": "Windows 11 Home",
+    "cpu": "Intel Core i5-12500H (12 cores / 16 threads)",
+    "ram_gb": 16,
+    "storage": "NVMe SSD",
+    "virtualization": "Docker Desktop with WSL2 (3GB RAM cap)"
+  },
+  "benchmarks": {
+    "crud_matrix": {
+      "total_raw_runs": 908,
+      "genuine_local_runs": 900,
+      "remote_cloud_pilot_runs": 8,
+      "workload_profiles": 150,
+      "engines_benchmarked": [
+        "Redis",
+        "MongoDB"
+      ],
+      "engines_skipped": [
+        "Cassandra",
+        "Neo4j"
+      ],
+      "skip_reason": "Hardware safety under 16GB RAM / 3GB WSL2 limit to prevent host system thrashing and OOM"
+    },
+    "qdrant_native_ann": {
+      "vectors": 2000,
+      "queries": 100,
+      "mean_recall_at_10": 1.0,
+      "p50_query_latency_ms": 15.073,
+      "p95_query_latency_ms": 26.875
+    },
+    "beir_scifact_rag": {
+      "dataset": "scifact",
+      "queries_evaluated": 50,
+      "recall_at_10": 0.872,
+      "ndcg_at_10": 0.7384,
+      "mrr": 0.7047
+    }
+  },
+  "machine_learning": {
+    "cross_validation": {
+      "folds": 5,
+      "strategy": "StratifiedGroupKFold(groups=base_workload_id)",
+      "random_forest_macro_f1": 0.8245,
+      "gradient_boosting_macro_f1": 0.8166,
+      "decision_tree_macro_f1": 0.7714
+    },
+    "held_out_test": {
+      "test_workloads": 38,
+      "best_model": "Random Forest",
+      "accuracy": 0.7895,
+      "macro_f1": 0.7871
+    },
+    "latency_regret": {
+      "oracle_best": 0.0,
+      "ml_recommender": 0.0433,
+      "majority_class_baseline": 0.1346,
+      "rule_based_baseline": 0.1408,
+      "random_feasible_baseline": 0.1516,
+      "single_store_mongodb_default": 0.1911
+    }
+  }
+}

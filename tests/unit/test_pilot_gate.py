@@ -112,6 +112,7 @@ def test_run_crud_matrix_resume_after_partial_failures(tmp_path: Path) -> None:
                 "status": "failed",
                 "error_summary": f"{db} initial connection failed",
                 "data_provenance": DataProvenance.GENUINE_BENCHMARK.value,
+                "cleanup_result": "skipped",
             })
             # Attempt 2: Redis and Neo4j succeeded, MongoDB and Cassandra failed again
             is_success = db in ["Redis", "Neo4j"]
@@ -142,6 +143,7 @@ def test_run_crud_matrix_resume_after_partial_failures(tmp_path: Path) -> None:
                 "status": "success" if is_success else "failed",
                 "error_summary": None if is_success else ("TLS handshake failed" if db == "MongoDB" else "Astra SCB missing"),
                 "data_provenance": DataProvenance.GENUINE_BENCHMARK.value,
+                "cleanup_result": "success" if is_success else "skipped",
             })
 
     append_raw_runs(historical_rows, csv_file)

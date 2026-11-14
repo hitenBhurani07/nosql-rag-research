@@ -55,3 +55,12 @@ logs/*
 Thumbs.db
 .vscode/
 .idea/
+
+# Scratch & Staging artifacts
+astra_b64.txt
+chunk*.txt
+stage_snippet.py
+full_send_msg.json
+send_to_subagent.txt
+data/sample/scifact*
+

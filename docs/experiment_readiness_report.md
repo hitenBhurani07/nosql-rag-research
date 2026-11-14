@@ -4,6 +4,12 @@ Date: 2026-11-12
 Status: **LOCKED FOR PRE-FLIGHT EXECUTION**
 Workspace: `nosql-rag-research`
 
+> **Superseded matrix note (2026-11-13):** The 900-run design below is historical. The
+> current approved design is Approach B: 75 base workloads x 2 matched concurrency levels
+> (1 and 4) x 4 CRUD databases x 3 repetitions = 1,800 run records. See
+> `docs/methodology/final_experiment_matrix.md` for the active matrix and current
+> execution evidence.
+
 ---
 
 ## 1. Defensible Workload Comparability Assessment

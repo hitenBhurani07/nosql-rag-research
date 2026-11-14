@@ -15,17 +15,26 @@ from nosql_rag.workloads.compatibility import CRUD_DATABASES
 
 
 def append_raw_runs(rows: list[dict[str, Any]], path: Path) -> pd.DataFrame:
-    """Append benchmark run rows to an append-only CSV without overwriting history."""
+    """Append rows without rewriting history or silently removing duplicate run IDs."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    if not rows:
+        return load_raw_runs(path)
+
     new_df = pd.DataFrame(rows)
-    if path.exists() and path.stat().st_size > 0:
-        existing = pd.read_csv(path)
-        combined = pd.concat([existing, new_df], ignore_index=True)
-        combined = combined.drop_duplicates(subset=["run_id"], keep="first")
-    else:
-        combined = new_df
-    combined.to_csv(path, index=False)
-    return combined
+    has_existing_data = path.exists() and path.stat().st_size > 0
+    if has_existing_data:
+        existing_columns = list(pd.read_csv(path, nrows=0).columns)
+        if set(new_df.columns) != set(existing_columns):
+            raise ValueError(
+                "Cannot append benchmark rows with a different CSV schema. "
+                f"Existing columns: {existing_columns}; new columns: {list(new_df.columns)}"
+            )
+        new_df = new_df.reindex(columns=existing_columns)
+
+    with path.open("a", encoding="utf-8", newline="") as output:
+        new_df.to_csv(output, index=False, header=not has_existing_data)
+
+    return load_raw_runs(path)
 
 
 def load_raw_runs(path: Path) -> pd.DataFrame:

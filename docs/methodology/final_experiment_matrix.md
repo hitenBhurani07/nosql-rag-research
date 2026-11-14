@@ -1,5 +1,12 @@
 # Final Experiment Matrix & Workload Design
 
+> **Current approved design (2026-11-13): Approach B.** Generate 75 base workloads at
+> matched concurrency levels 1 and 4, producing 150 workload profiles. Run each profile
+> against Redis, MongoDB, Cassandra, and Neo4j for three repetitions: 600 distinct
+> workload-profile/database keys and **1,800 run records**. The two profiles sharing a
+> `base_workload_id` must stay in the same ML split. Earlier 900-run and 2,160-run options
+> below are historical alternatives and are not the active matrix.
+
 ## 1. Workload Dimensions and Ranges Currently Implemented
 
 The operational workload generator (`src/nosql_rag/workloads/generator.py`) implements a parameterized workload space:
@@ -26,9 +33,12 @@ A central contribution of this research audit is strictly distinguishing:
 
 ---
 
-## 3. Evaluated Experiment Matrix Options
+## 3. Historical Experiment Matrix Options
 
-### Option A: The Current 75-Profile Matrix (Recommended Pilot-to-Intermediate Benchmark)
+The options in this section document prior planning and have been superseded by the
+Approach B design stated above.
+
+### Historical Option A: 75 unpaired profiles
 - **Distinct Independent Profiles:** $75$
 - **Candidate Databases per Profile:** $4$ (`Redis`, `MongoDB`, `Cassandra`, `Neo4j`)
 - **Benchmark Configurations:** $75 \times 4 = 300$
@@ -37,7 +47,7 @@ A central contribution of this research audit is strictly distinguishing:
 - **Estimated Execution Time:** ~45–60 minutes in Google Colab (assuming ~3–4 seconds per 1500-op run in batches of 5).
 - **Statistical Assessment:** With $N = 75$ independent profiles, a 75/25 split yields 56 training workloads and 19 testing workloads. Across 3 dominant winning classes (`Redis`, `MongoDB`, `Cassandra`), this provides ~18 samples per class. Suitable for pilot verification and initial model training.
 
-### Option B: The 180-Profile Expanded Matrix (Full Academic Dissertation Matrix)
+### Historical Option B: 180 unpaired profiles
 - **Distinct Independent Profiles:** $180$ (Full factorial of 3 query types $\times$ 5 read ratios $\times$ 4 payload sizes $\times$ 3 concurrency levels).
 - **Benchmark Configurations:** $180 \times 4 = 720$
 - **Repetitions per Configuration:** $3$
@@ -56,14 +66,21 @@ A central contribution of this research audit is strictly distinguishing:
 
 ---
 
-## 4. Final Experiment Matrix Lock
+## 4. Current Experiment Matrix Lock
 
-To balance scientific defensibility with practical execution limits in Google Colab:
+The approved primary matrix is Approach B. The expected run count is 75 base workloads x
+2 matched concurrency levels x 4 CRUD databases x 3 repetitions = 1,800. These are run
+records, not 1,800 independent workloads. There are 75 independent base workload groups
+and 150 matched workload profiles.
 
-| Stage | Independent Profiles ($N$) | Engines per Profile | Repetitions | Total Executions | Operations / Run | Est. Duration | Purpose |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **Pre-Flight Pilot** | **2** | 4 | 1 | **8** | 250 | ~2 mins | Verify connectivity, timeouts, schema, and cleanup |
-| **Vector Pilot** | **1** | 1 (Qdrant) | 1 | **1** | 2000 vectors / 100 queries | ~1 min | Verify Qdrant HNSW and Recall@K calculation |
-| **RAG Pilot** | **1** | 1 (Qdrant) | 1 | **1** | 50 queries (SciFact) | ~3 mins | Verify BEIR download, MiniLM encoding, and IR metrics |
-| **Primary CRUD Matrix** | **75** | 4 | 3 | **900** | 1500 | ~50 mins | Primary benchmark for model training & regret evaluation |
-| **Expanded CRUD Matrix (Optional)** | **180** | 4 | 3 | **2,160** | 1500 | ~3.5 hours | High-resolution sensitivity analysis for publication |
+| Stage | Base groups | Matched profiles | Engines per profile | Repetitions | Total executions | Purpose |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| **Pre-Flight Pilot** | 2 pilot workloads | 2 | 4 | 1 | **8** | Verify connectivity, timeouts, schema, and cleanup |
+| **Primary CRUD Matrix (Approach B)** | **75** | **150** | **4** | **3** | **1,800** | Train and evaluate the CRUD selector and regret baselines |
+| **Qdrant ANN** | Separate track | Separate | 1 (Qdrant) | As recorded | Separate | Vector ANN latency and recall |
+| **BEIR SciFact** | Separate track | Separate | 1 (Qdrant) | As recorded | Separate | Retrieval quality and latency |
+| **Neo4j graph traversal** | Separate track | Separate | 1 (Neo4j) | As recorded | Separate | Native graph workload evaluation |
+
+Do not treat a three-database run as complete. If MongoDB is unavailable during the
+current three-engine pass, preserve that pass and execute only missing MongoDB keys after
+connectivity is restored. Reconcile against the latest checkpoint before resuming.

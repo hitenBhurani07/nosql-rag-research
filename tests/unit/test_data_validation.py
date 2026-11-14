@@ -65,3 +65,17 @@ def test_append_only_and_aggregation(tmp_path: Path) -> None:
     labels = derive_best_store_labels(agg, profiles)
     assert len(labels) == 3
     assert set(labels["best_store"]).issubset({"Redis", "MongoDB", "Cassandra", "Neo4j"})
+
+
+def test_append_preserves_existing_bytes_and_duplicate_run_ids(tmp_path: Path) -> None:
+    csv_path = tmp_path / "raw_runs.csv"
+    profile = generate_workload_profiles(n_profiles=1)
+    run = generate_synthetic_demo_runs(profile, repetitions=1).iloc[0].to_dict()
+
+    append_raw_runs([run], csv_path)
+    original_bytes = csv_path.read_bytes()
+    appended = append_raw_runs([run], csv_path)
+
+    assert csv_path.read_bytes().startswith(original_bytes)
+    assert len(appended) == 2
+    assert appended["run_id"].duplicated().sum() == 1

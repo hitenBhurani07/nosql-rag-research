@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import redis
+
 from nosql_rag.adapters.base import (
     AdapterError,
     BaseCRUDAdapter,
@@ -17,8 +19,42 @@ from nosql_rag.adapters.base import (
 from nosql_rag.config import DatabaseConfig
 
 
+class FastConnection(redis.Connection):
+    """Custom Connection that joins multi-part command buffers to prevent Nagle/delayed-ACK stalls."""
+
+    def send_packed_command(self, command, check_health=True):
+        if not self._sock:
+            self.connect_check_health(check_health=False)
+        if check_health:
+            self.check_health()
+        try:
+            if isinstance(command, list):
+                if len(command) == 1:
+                    self._sock.sendall(command[0])
+                else:
+                    joined = b"".join(
+                        c.encode() if isinstance(c, str) else c for c in command
+                    )
+                    self._sock.sendall(joined)
+            elif isinstance(command, str):
+                self._sock.sendall(command.encode())
+            else:
+                self._sock.sendall(command)
+        except TimeoutError:
+            self.disconnect()
+            raise TimeoutError("Timeout writing to socket")
+        except OSError as e:
+            self.disconnect()
+            errno = "UNKNOWN" if len(e.args) == 1 else e.args[0]
+            errmsg = e.args[0] if len(e.args) == 1 else e.args[1]
+            raise ConnectionError(f"Error {errno} while writing to socket. {errmsg}.")
+        except BaseException:
+            self.disconnect()
+            raise
+
+
 class RedisAdapter(BaseCRUDAdapter):
-    """Redis key-value adapter using redis-py."""
+    """Redis key-value adapter using redis-py with optimized FastConnection."""
 
     name = "Redis"
 
@@ -26,7 +62,11 @@ class RedisAdapter(BaseCRUDAdapter):
         import redis
 
         self.client = redis.Redis.from_url(
-            url, decode_responses=True, socket_timeout=10, socket_connect_timeout=10
+            url,
+            decode_responses=True,
+            socket_timeout=10,
+            socket_connect_timeout=10,
+            connection_class=FastConnection,
         )
 
     def check(self) -> bool:

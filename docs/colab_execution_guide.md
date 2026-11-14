@@ -117,17 +117,29 @@ In the Google Colab left sidebar, open the **Key icon (Secrets)** and define the
      - Displays per-configuration metrics, error summaries, and diagnostic recovery hints.
 
 ### Step 7: Execute Full Matrix Benchmark (Cells 36–37)
+**Current matrix:** 75 base workloads are paired at concurrency 1 and 4, producing 150
+profiles. Each profile is measured on Redis, MongoDB, Cassandra, and Neo4j for three
+repetitions: 1,800 expected run records. Keep matched pairs grouped by `base_workload_id`
+in every model split. A matrix that omits one of the four engines is incomplete.
+
+Before any resume, verify the live cell has stopped and download the latest Drive CSV.
+Run `python scripts/audit_crud_matrix.py <checkpoint.csv>` to identify successful keys,
+failed attempts, and pending configurations. Do not re-run a cell while it is active.
+After recovering the checkpoint and confirming the runtime is idle, refresh the package
+from the current repository before resuming so the hardened append-only persistence and
+measurement validation are loaded.
+
 1. Once the pilot passes cleanly, set `RUN_FULL_MATRIX = True` in Cell 4.
 2. Run Cell 37.
    - Executes workload profiles across engines $\times$ 3 repetitions in controlled batches.
    - Automatically appends results to `data/raw/crud_benchmark_runs.csv`.
-   - **Resume support:** If runtime disconnects, re-running Cell 37 checks existing successful runs and resumes pending configurations.
+   - **Resume support:** The current runner skips only genuine successful keys with valid latency percentiles and acceptable error rates; it preserves failed attempts and repeated IDs for audit.
 
 ### Step 8: Data Validation & ML Training (Cells 38–49)
 1. Run Cell 39 (`validate_raw_runs`). Ensures zero duplicate runs, correct latency ordering ($p50 \le p95 \le p99$), zero synthetic contamination, and acceptable error rates ($\le 1\%$).
 2. Run Cell 41 (`derive_best_store_labels`). Aggregates median metrics and derives winning `best_store` labels. Output: `data/processed/labelled_workloads.csv`.
 3. Set `RUN_ML_TRAINING = True` in Cell 4 and run Cells 43–49.
-   - Partitions profiles using leakage-safe `GroupShuffleSplit` (grouped by `workload_id`).
+   - Partitions profiles with leakage-safe grouping by `base_workload_id`, keeping matched concurrency profiles in the same split.
    - Fits Decision Tree, Random Forest, and Gradient Boosting.
    - Saves the best model to `results/models/best_nosql_recommender.joblib`.
 

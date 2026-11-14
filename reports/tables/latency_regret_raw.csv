@@ -1,0 +1,229 @@
+workload_id,query_type,method,selected_store,is_feasible,selected_p95_latency_ms,best_feasible_store,best_feasible_p95_latency_ms,relative_latency_regret
+W0001,key_value_crud,ML recommender,MongoDB,True,0.33962500003781315,MongoDB,0.33962500003781315,0.0
+W0001,key_value_crud,Oracle best,MongoDB,True,0.33962500003781315,MongoDB,0.33962500003781315,0.0
+W0001,key_value_crud,Rule-based baseline,Redis,True,0.39263999972263264,MongoDB,0.33962500003781315,0.1560986372584966
+W0001,key_value_crud,Majority-class baseline,Redis,True,0.39263999972263264,MongoDB,0.33962500003781315,0.1560986372584966
+W0001,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.33962500003781315,MongoDB,0.33962500003781315,0.0
+W0001,key_value_crud,Random feasible baseline,MongoDB,True,0.33962500003781315,MongoDB,0.33962500003781315,0.0
+W0002,key_value_crud,ML recommender,Redis,True,0.9088300000485102,Redis,0.9088300000485102,0.0
+W0002,key_value_crud,Oracle best,Redis,True,0.9088300000485102,Redis,0.9088300000485102,0.0
+W0002,key_value_crud,Rule-based baseline,Redis,True,0.9088300000485102,Redis,0.9088300000485102,0.0
+W0002,key_value_crud,Majority-class baseline,Redis,True,0.9088300000485102,Redis,0.9088300000485102,0.0
+W0002,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.1962049999738151,Redis,0.9088300000485102,0.3162032502337795
+W0002,key_value_crud,Random feasible baseline,Redis,True,0.9088300000485102,Redis,0.9088300000485102,0.0
+W0009,document_crud,ML recommender,MongoDB,True,0.2875099998618679,MongoDB,0.2875099998618679,0.0
+W0009,document_crud,Oracle best,MongoDB,True,0.2875099998618679,MongoDB,0.2875099998618679,0.0
+W0009,document_crud,Rule-based baseline,MongoDB,True,0.2875099998618679,MongoDB,0.2875099998618679,0.0
+W0009,document_crud,Majority-class baseline,Redis,True,0.3785299999663038,MongoDB,0.2875099998618679,0.31658029337472016
+W0009,document_crud,Single-store default (MongoDB),MongoDB,True,0.2875099998618679,MongoDB,0.2875099998618679,0.0
+W0009,document_crud,Random feasible baseline,Redis,True,0.3785299999663038,MongoDB,0.2875099998618679,0.31658029337472016
+W0010,document_crud,ML recommender,Redis,True,0.8316649998278078,Redis,0.8316649998278078,0.0
+W0010,document_crud,Oracle best,Redis,True,0.8316649998278078,Redis,0.8316649998278078,0.0
+W0010,document_crud,Rule-based baseline,MongoDB,True,1.0632850001002225,Redis,0.8316649998278078,0.27850156050858277
+W0010,document_crud,Majority-class baseline,Redis,True,0.8316649998278078,Redis,0.8316649998278078,0.0
+W0010,document_crud,Single-store default (MongoDB),MongoDB,True,1.0632850001002225,Redis,0.8316649998278078,0.27850156050858277
+W0010,document_crud,Random feasible baseline,MongoDB,True,1.0632850001002225,Redis,0.8316649998278078,0.27850156050858277
+W0011,wide_column_crud,ML recommender,MongoDB,True,0.3166599997030061,MongoDB,0.3166599997030061,0.0
+W0011,wide_column_crud,Oracle best,MongoDB,True,0.3166599997030061,MongoDB,0.3166599997030061,0.0
+W0011,wide_column_crud,Rule-based baseline,Cassandra,True,,MongoDB,0.3166599997030061,
+W0011,wide_column_crud,Majority-class baseline,Redis,True,0.37633000010828244,MongoDB,0.3166599997030061,0.18843554746807464
+W0011,wide_column_crud,Single-store default (MongoDB),MongoDB,True,0.3166599997030061,MongoDB,0.3166599997030061,0.0
+W0011,wide_column_crud,Random feasible baseline,MongoDB,True,0.3166599997030061,MongoDB,0.3166599997030061,0.0
+W0012,wide_column_crud,ML recommender,Redis,True,0.8412799998950503,Redis,0.8412799998950503,0.0
+W0012,wide_column_crud,Oracle best,Redis,True,0.8412799998950503,Redis,0.8412799998950503,0.0
+W0012,wide_column_crud,Rule-based baseline,Cassandra,True,,Redis,0.8412799998950503,
+W0012,wide_column_crud,Majority-class baseline,Redis,True,0.8412799998950503,Redis,0.8412799998950503,0.0
+W0012,wide_column_crud,Single-store default (MongoDB),MongoDB,True,1.4368950000516632,Redis,0.8412799998950503,0.7079866396811
+W0012,wide_column_crud,Random feasible baseline,Redis,True,0.8412799998950503,Redis,0.8412799998950503,0.0
+W0019,key_value_crud,ML recommender,MongoDB,True,0.32039999996413826,MongoDB,0.32039999996413826,0.0
+W0019,key_value_crud,Oracle best,MongoDB,True,0.32039999996413826,MongoDB,0.32039999996413826,0.0
+W0019,key_value_crud,Rule-based baseline,Redis,True,0.3829350000387421,MongoDB,0.32039999996413826,0.19517790287641465
+W0019,key_value_crud,Majority-class baseline,Redis,True,0.3829350000387421,MongoDB,0.32039999996413826,0.19517790287641465
+W0019,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.32039999996413826,MongoDB,0.32039999996413826,0.0
+W0019,key_value_crud,Random feasible baseline,MongoDB,True,0.32039999996413826,MongoDB,0.32039999996413826,0.0
+W0020,key_value_crud,ML recommender,MongoDB,True,1.1780150000504361,Redis,0.8524050000232818,0.381989781873946
+W0020,key_value_crud,Oracle best,Redis,True,0.8524050000232818,Redis,0.8524050000232818,0.0
+W0020,key_value_crud,Rule-based baseline,Redis,True,0.8524050000232818,Redis,0.8524050000232818,0.0
+W0020,key_value_crud,Majority-class baseline,Redis,True,0.8524050000232818,Redis,0.8524050000232818,0.0
+W0020,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.1780150000504361,Redis,0.8524050000232818,0.381989781873946
+W0020,key_value_crud,Random feasible baseline,Redis,True,0.8524050000232818,Redis,0.8524050000232818,0.0
+W0021,document_crud,ML recommender,Redis,True,0.47692999994524143,MongoDB,0.3886650000367808,0.22709788609755913
+W0021,document_crud,Oracle best,MongoDB,True,0.3886650000367808,MongoDB,0.3886650000367808,0.0
+W0021,document_crud,Rule-based baseline,MongoDB,True,0.3886650000367808,MongoDB,0.3886650000367808,0.0
+W0021,document_crud,Majority-class baseline,Redis,True,0.47692999994524143,MongoDB,0.3886650000367808,0.22709788609755913
+W0021,document_crud,Single-store default (MongoDB),MongoDB,True,0.3886650000367808,MongoDB,0.3886650000367808,0.0
+W0021,document_crud,Random feasible baseline,MongoDB,True,0.3886650000367808,MongoDB,0.3886650000367808,0.0
+W0022,document_crud,ML recommender,Redis,True,1.0378549998677036,Redis,1.0378549998677036,0.0
+W0022,document_crud,Oracle best,Redis,True,1.0378549998677036,Redis,1.0378549998677036,0.0
+W0022,document_crud,Rule-based baseline,MongoDB,True,1.2633200000891518,Redis,1.0378549998677036,0.21724132971386992
+W0022,document_crud,Majority-class baseline,Redis,True,1.0378549998677036,Redis,1.0378549998677036,0.0
+W0022,document_crud,Single-store default (MongoDB),MongoDB,True,1.2633200000891518,Redis,1.0378549998677036,0.21724132971386992
+W0022,document_crud,Random feasible baseline,MongoDB,True,1.2633200000891518,Redis,1.0378549998677036,0.21724132971386992
+W0025,key_value_crud,ML recommender,MongoDB,True,0.30138000001898035,MongoDB,0.30138000001898035,0.0
+W0025,key_value_crud,Oracle best,MongoDB,True,0.30138000001898035,MongoDB,0.30138000001898035,0.0
+W0025,key_value_crud,Rule-based baseline,Redis,True,0.3808599999501893,MongoDB,0.30138000001898035,0.2637202200749999
+W0025,key_value_crud,Majority-class baseline,Redis,True,0.3808599999501893,MongoDB,0.30138000001898035,0.2637202200749999
+W0025,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.30138000001898035,MongoDB,0.30138000001898035,0.0
+W0025,key_value_crud,Random feasible baseline,Redis,True,0.3808599999501893,MongoDB,0.30138000001898035,0.2637202200749999
+W0026,key_value_crud,ML recommender,Redis,True,1.4349200001561253,MongoDB,1.4154200002849389,0.01377682939852545
+W0026,key_value_crud,Oracle best,MongoDB,True,1.4154200002849389,MongoDB,1.4154200002849389,0.0
+W0026,key_value_crud,Rule-based baseline,Redis,True,1.4349200001561253,MongoDB,1.4154200002849389,0.01377682939852545
+W0026,key_value_crud,Majority-class baseline,Redis,True,1.4349200001561253,MongoDB,1.4154200002849389,0.01377682939852545
+W0026,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.4154200002849389,MongoDB,1.4154200002849389,0.0
+W0026,key_value_crud,Random feasible baseline,Redis,True,1.4349200001561253,MongoDB,1.4154200002849389,0.01377682939852545
+W0037,key_value_crud,ML recommender,MongoDB,True,0.31931500004702684,Redis,0.3178000001071268,0.004767148959689661
+W0037,key_value_crud,Oracle best,Redis,True,0.3178000001071268,Redis,0.3178000001071268,0.0
+W0037,key_value_crud,Rule-based baseline,Redis,True,0.3178000001071268,Redis,0.3178000001071268,0.0
+W0037,key_value_crud,Majority-class baseline,Redis,True,0.3178000001071268,Redis,0.3178000001071268,0.0
+W0037,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.31931500004702684,Redis,0.3178000001071268,0.004767148959689661
+W0037,key_value_crud,Random feasible baseline,Redis,True,0.3178000001071268,Redis,0.3178000001071268,0.0
+W0038,key_value_crud,ML recommender,Redis,True,0.8126899998615043,Redis,0.8126899998615043,0.0
+W0038,key_value_crud,Oracle best,Redis,True,0.8126899998615043,Redis,0.8126899998615043,0.0
+W0038,key_value_crud,Rule-based baseline,Redis,True,0.8126899998615043,Redis,0.8126899998615043,0.0
+W0038,key_value_crud,Majority-class baseline,Redis,True,0.8126899998615043,Redis,0.8126899998615043,0.0
+W0038,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.2213299999757499,Redis,0.8126899998615043,0.5028239552398635
+W0038,key_value_crud,Random feasible baseline,Redis,True,0.8126899998615043,Redis,0.8126899998615043,0.0
+W0045,document_crud,ML recommender,MongoDB,True,0.32324499991318584,MongoDB,0.32324499991318584,0.0
+W0045,document_crud,Oracle best,MongoDB,True,0.32324499991318584,MongoDB,0.32324499991318584,0.0
+W0045,document_crud,Rule-based baseline,MongoDB,True,0.32324499991318584,MongoDB,0.32324499991318584,0.0
+W0045,document_crud,Majority-class baseline,Redis,True,0.46797000031801866,MongoDB,0.32324499991318584,0.44772541089174384
+W0045,document_crud,Single-store default (MongoDB),MongoDB,True,0.32324499991318584,MongoDB,0.32324499991318584,0.0
+W0045,document_crud,Random feasible baseline,Redis,True,0.46797000031801866,MongoDB,0.32324499991318584,0.44772541089174384
+W0046,document_crud,ML recommender,Redis,True,0.8836399998699558,Redis,0.8836399998699558,0.0
+W0046,document_crud,Oracle best,Redis,True,0.8836399998699558,Redis,0.8836399998699558,0.0
+W0046,document_crud,Rule-based baseline,MongoDB,True,1.5576450001844926,Redis,0.8836399998699558,0.7627597216216211
+W0046,document_crud,Majority-class baseline,Redis,True,0.8836399998699558,Redis,0.8836399998699558,0.0
+W0046,document_crud,Single-store default (MongoDB),MongoDB,True,1.5576450001844926,Redis,0.8836399998699558,0.7627597216216211
+W0046,document_crud,Random feasible baseline,Redis,True,0.8836399998699558,Redis,0.8836399998699558,0.0
+W0057,document_crud,ML recommender,MongoDB,True,0.45949499983635145,Redis,0.3926550002461226,0.17022576956445848
+W0057,document_crud,Oracle best,Redis,True,0.3926550002461226,Redis,0.3926550002461226,0.0
+W0057,document_crud,Rule-based baseline,MongoDB,True,0.45949499983635145,Redis,0.3926550002461226,0.17022576956445848
+W0057,document_crud,Majority-class baseline,Redis,True,0.3926550002461226,Redis,0.3926550002461226,0.0
+W0057,document_crud,Single-store default (MongoDB),MongoDB,True,0.45949499983635145,Redis,0.3926550002461226,0.17022576956445848
+W0057,document_crud,Random feasible baseline,Redis,True,0.3926550002461226,Redis,0.3926550002461226,0.0
+W0058,document_crud,ML recommender,Redis,True,0.8822450000479876,Redis,0.8822450000479876,0.0
+W0058,document_crud,Oracle best,Redis,True,0.8822450000479876,Redis,0.8822450000479876,0.0
+W0058,document_crud,Rule-based baseline,MongoDB,True,1.160945000060564,Redis,0.8822450000479876,0.31589864493130265
+W0058,document_crud,Majority-class baseline,Redis,True,0.8822450000479876,Redis,0.8822450000479876,0.0
+W0058,document_crud,Single-store default (MongoDB),MongoDB,True,1.160945000060564,Redis,0.8822450000479876,0.31589864493130265
+W0058,document_crud,Random feasible baseline,MongoDB,True,1.160945000060564,Redis,0.8822450000479876,0.31589864493130265
+W0067,key_value_crud,ML recommender,MongoDB,True,0.3448199997365009,MongoDB,0.3448199997365009,0.0
+W0067,key_value_crud,Oracle best,MongoDB,True,0.3448199997365009,MongoDB,0.3448199997365009,0.0
+W0067,key_value_crud,Rule-based baseline,Redis,True,0.5566799999542126,MongoDB,0.3448199997365009,0.6144075180662593
+W0067,key_value_crud,Majority-class baseline,Redis,True,0.5566799999542126,MongoDB,0.3448199997365009,0.6144075180662593
+W0067,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.3448199997365009,MongoDB,0.3448199997365009,0.0
+W0067,key_value_crud,Random feasible baseline,Redis,True,0.5566799999542126,MongoDB,0.3448199997365009,0.6144075180662593
+W0068,key_value_crud,ML recommender,Redis,True,0.8690800003023468,Redis,0.8690800003023468,0.0
+W0068,key_value_crud,Oracle best,Redis,True,0.8690800003023468,Redis,0.8690800003023468,0.0
+W0068,key_value_crud,Rule-based baseline,Redis,True,0.8690800003023468,Redis,0.8690800003023468,0.0
+W0068,key_value_crud,Majority-class baseline,Redis,True,0.8690800003023468,Redis,0.8690800003023468,0.0
+W0068,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.2287000003198045,Redis,0.8690800003023468,0.4137938968706546
+W0068,key_value_crud,Random feasible baseline,MongoDB,True,1.2287000003198045,Redis,0.8690800003023468,0.4137938968706546
+W0069,document_crud,ML recommender,MongoDB,True,0.29050499981622113,MongoDB,0.29050499981622113,0.0
+W0069,document_crud,Oracle best,MongoDB,True,0.29050499981622113,MongoDB,0.29050499981622113,0.0
+W0069,document_crud,Rule-based baseline,MongoDB,True,0.29050499981622113,MongoDB,0.29050499981622113,0.0
+W0069,document_crud,Majority-class baseline,Redis,True,0.30320500004563655,MongoDB,0.29050499981622113,0.0437169764288039
+W0069,document_crud,Single-store default (MongoDB),MongoDB,True,0.29050499981622113,MongoDB,0.29050499981622113,0.0
+W0069,document_crud,Random feasible baseline,Redis,True,0.30320500004563655,MongoDB,0.29050499981622113,0.0437169764288039
+W0070,document_crud,ML recommender,Redis,True,0.7990049999989424,Redis,0.7990049999989424,0.0
+W0070,document_crud,Oracle best,Redis,True,0.7990049999989424,Redis,0.7990049999989424,0.0
+W0070,document_crud,Rule-based baseline,MongoDB,True,1.078639999786901,Redis,0.7990049999989424,0.34997903616163695
+W0070,document_crud,Majority-class baseline,Redis,True,0.7990049999989424,Redis,0.7990049999989424,0.0
+W0070,document_crud,Single-store default (MongoDB),MongoDB,True,1.078639999786901,Redis,0.7990049999989424,0.34997903616163695
+W0070,document_crud,Random feasible baseline,MongoDB,True,1.078639999786901,Redis,0.7990049999989424,0.34997903616163695
+W0071,wide_column_crud,ML recommender,MongoDB,True,0.31955500023741473,MongoDB,0.31955500023741473,0.0
+W0071,wide_column_crud,Oracle best,MongoDB,True,0.31955500023741473,MongoDB,0.31955500023741473,0.0
+W0071,wide_column_crud,Rule-based baseline,Cassandra,True,,MongoDB,0.31955500023741473,
+W0071,wide_column_crud,Majority-class baseline,Redis,True,0.35393999999087083,MongoDB,0.31955500023741473,0.10760275923678121
+W0071,wide_column_crud,Single-store default (MongoDB),MongoDB,True,0.31955500023741473,MongoDB,0.31955500023741473,0.0
+W0071,wide_column_crud,Random feasible baseline,MongoDB,True,0.31955500023741473,MongoDB,0.31955500023741473,0.0
+W0072,wide_column_crud,ML recommender,Redis,True,0.8161599998175004,Redis,0.8161599998175004,0.0
+W0072,wide_column_crud,Oracle best,Redis,True,0.8161599998175004,Redis,0.8161599998175004,0.0
+W0072,wide_column_crud,Rule-based baseline,Cassandra,True,,Redis,0.8161599998175004,
+W0072,wide_column_crud,Majority-class baseline,Redis,True,0.8161599998175004,Redis,0.8161599998175004,0.0
+W0072,wide_column_crud,Single-store default (MongoDB),MongoDB,True,1.1526300000923584,Redis,0.8161599998175004,0.4122598514385601
+W0072,wide_column_crud,Random feasible baseline,Redis,True,0.8161599998175004,Redis,0.8161599998175004,0.0
+W0085,key_value_crud,ML recommender,Redis,True,0.4124799999772222,MongoDB,0.30930000020816806,0.3335919809234107
+W0085,key_value_crud,Oracle best,MongoDB,True,0.30930000020816806,MongoDB,0.30930000020816806,0.0
+W0085,key_value_crud,Rule-based baseline,Redis,True,0.4124799999772222,MongoDB,0.30930000020816806,0.3335919809234107
+W0085,key_value_crud,Majority-class baseline,Redis,True,0.4124799999772222,MongoDB,0.30930000020816806,0.3335919809234107
+W0085,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.30930000020816806,MongoDB,0.30930000020816806,0.0
+W0085,key_value_crud,Random feasible baseline,Redis,True,0.4124799999772222,MongoDB,0.30930000020816806,0.3335919809234107
+W0086,key_value_crud,ML recommender,Redis,True,1.0681000000658967,Redis,1.0681000000658967,0.0
+W0086,key_value_crud,Oracle best,Redis,True,1.0681000000658967,Redis,1.0681000000658967,0.0
+W0086,key_value_crud,Rule-based baseline,Redis,True,1.0681000000658967,Redis,1.0681000000658967,0.0
+W0086,key_value_crud,Majority-class baseline,Redis,True,1.0681000000658967,Redis,1.0681000000658967,0.0
+W0086,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.4667400001599158,Redis,1.0681000000658967,0.3732234810124754
+W0086,key_value_crud,Random feasible baseline,Redis,True,1.0681000000658967,Redis,1.0681000000658967,0.0
+W0099,document_crud,ML recommender,Redis,True,0.37814000004345866,MongoDB,0.33076500030801964,0.14322857524623767
+W0099,document_crud,Oracle best,MongoDB,True,0.33076500030801964,MongoDB,0.33076500030801964,0.0
+W0099,document_crud,Rule-based baseline,MongoDB,True,0.33076500030801964,MongoDB,0.33076500030801964,0.0
+W0099,document_crud,Majority-class baseline,Redis,True,0.37814000004345866,MongoDB,0.33076500030801964,0.14322857524623767
+W0099,document_crud,Single-store default (MongoDB),MongoDB,True,0.33076500030801964,MongoDB,0.33076500030801964,0.0
+W0099,document_crud,Random feasible baseline,MongoDB,True,0.33076500030801964,MongoDB,0.33076500030801964,0.0
+W0100,document_crud,ML recommender,Redis,True,0.8324650003032724,Redis,0.8324650003032724,0.0
+W0100,document_crud,Oracle best,Redis,True,0.8324650003032724,Redis,0.8324650003032724,0.0
+W0100,document_crud,Rule-based baseline,MongoDB,True,1.0736500001939926,Redis,0.8324650003032724,0.2897238920589513
+W0100,document_crud,Majority-class baseline,Redis,True,0.8324650003032724,Redis,0.8324650003032724,0.0
+W0100,document_crud,Single-store default (MongoDB),MongoDB,True,1.0736500001939926,Redis,0.8324650003032724,0.2897238920589513
+W0100,document_crud,Random feasible baseline,Redis,True,0.8324650003032724,Redis,0.8324650003032724,0.0
+W0113,wide_column_crud,ML recommender,MongoDB,True,0.3097149998893655,MongoDB,0.3097149998893655,0.0
+W0113,wide_column_crud,Oracle best,MongoDB,True,0.3097149998893655,MongoDB,0.3097149998893655,0.0
+W0113,wide_column_crud,Rule-based baseline,Cassandra,True,,MongoDB,0.3097149998893655,
+W0113,wide_column_crud,Majority-class baseline,Redis,True,0.3842799998665214,MongoDB,0.3097149998893655,0.2407535960602216
+W0113,wide_column_crud,Single-store default (MongoDB),MongoDB,True,0.3097149998893655,MongoDB,0.3097149998893655,0.0
+W0113,wide_column_crud,Random feasible baseline,Redis,True,0.3842799998665214,MongoDB,0.3097149998893655,0.2407535960602216
+W0114,wide_column_crud,ML recommender,Redis,True,0.9147500000608484,Redis,0.9147500000608484,0.0
+W0114,wide_column_crud,Oracle best,Redis,True,0.9147500000608484,Redis,0.9147500000608484,0.0
+W0114,wide_column_crud,Rule-based baseline,Cassandra,True,,Redis,0.9147500000608484,
+W0114,wide_column_crud,Majority-class baseline,Redis,True,0.9147500000608484,Redis,0.9147500000608484,0.0
+W0114,wide_column_crud,Single-store default (MongoDB),MongoDB,True,1.1691850000943298,Redis,0.9147500000608484,0.27814703472703645
+W0114,wide_column_crud,Random feasible baseline,MongoDB,True,1.1691850000943298,Redis,0.9147500000608484,0.27814703472703645
+W0123,document_crud,ML recommender,MongoDB,True,0.3074000000424348,MongoDB,0.3074000000424348,0.0
+W0123,document_crud,Oracle best,MongoDB,True,0.3074000000424348,MongoDB,0.3074000000424348,0.0
+W0123,document_crud,Rule-based baseline,MongoDB,True,0.3074000000424348,MongoDB,0.3074000000424348,0.0
+W0123,document_crud,Majority-class baseline,Redis,True,0.38006500017218053,MongoDB,0.3074000000424348,0.23638581691514238
+W0123,document_crud,Single-store default (MongoDB),MongoDB,True,0.3074000000424348,MongoDB,0.3074000000424348,0.0
+W0123,document_crud,Random feasible baseline,MongoDB,True,0.3074000000424348,MongoDB,0.3074000000424348,0.0
+W0124,document_crud,ML recommender,Redis,True,0.9328450000339216,Redis,0.9328450000339216,0.0
+W0124,document_crud,Oracle best,Redis,True,0.9328450000339216,Redis,0.9328450000339216,0.0
+W0124,document_crud,Rule-based baseline,MongoDB,True,1.0863299999755325,Redis,0.9328450000339216,0.16453430091390278
+W0124,document_crud,Majority-class baseline,Redis,True,0.9328450000339216,Redis,0.9328450000339216,0.0
+W0124,document_crud,Single-store default (MongoDB),MongoDB,True,1.0863299999755325,Redis,0.9328450000339216,0.16453430091390278
+W0124,document_crud,Random feasible baseline,MongoDB,True,1.0863299999755325,Redis,0.9328450000339216,0.16453430091390278
+W0127,key_value_crud,ML recommender,MongoDB,True,0.33135999974547303,MongoDB,0.33135999974547303,0.0
+W0127,key_value_crud,Oracle best,MongoDB,True,0.33135999974547303,MongoDB,0.33135999974547303,0.0
+W0127,key_value_crud,Rule-based baseline,Redis,True,0.4139199999372067,MongoDB,0.33135999974547303,0.2491549983557168
+W0127,key_value_crud,Majority-class baseline,Redis,True,0.4139199999372067,MongoDB,0.33135999974547303,0.2491549983557168
+W0127,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.33135999974547303,MongoDB,0.33135999974547303,0.0
+W0127,key_value_crud,Random feasible baseline,MongoDB,True,0.33135999974547303,MongoDB,0.33135999974547303,0.0
+W0128,key_value_crud,ML recommender,Redis,True,0.9468799996284359,Redis,0.9468799996284359,0.0
+W0128,key_value_crud,Oracle best,Redis,True,0.9468799996284359,Redis,0.9468799996284359,0.0
+W0128,key_value_crud,Rule-based baseline,Redis,True,0.9468799996284359,Redis,0.9468799996284359,0.0
+W0128,key_value_crud,Majority-class baseline,Redis,True,0.9468799996284359,Redis,0.9468799996284359,0.0
+W0128,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.472719999947003,Redis,0.9468799996284359,0.5553396423252275
+W0128,key_value_crud,Random feasible baseline,Redis,True,0.9468799996284359,Redis,0.9468799996284359,0.0
+W0129,document_crud,ML recommender,MongoDB,True,0.30139499999677355,MongoDB,0.30139499999677355,0.0
+W0129,document_crud,Oracle best,MongoDB,True,0.30139499999677355,MongoDB,0.30139499999677355,0.0
+W0129,document_crud,Rule-based baseline,MongoDB,True,0.30139499999677355,MongoDB,0.30139499999677355,0.0
+W0129,document_crud,Majority-class baseline,Redis,True,0.7043849997671714,MongoDB,0.30139499999677355,1.3370825653203002
+W0129,document_crud,Single-store default (MongoDB),MongoDB,True,0.30139499999677355,MongoDB,0.30139499999677355,0.0
+W0129,document_crud,Random feasible baseline,Redis,True,0.7043849997671714,MongoDB,0.30139499999677355,1.3370825653203002
+W0130,document_crud,ML recommender,Redis,True,1.100105000045914,Redis,1.100105000045914,0.0
+W0130,document_crud,Oracle best,Redis,True,1.100105000045914,Redis,1.100105000045914,0.0
+W0130,document_crud,Rule-based baseline,MongoDB,True,1.2426250000089567,Redis,1.100105000045914,0.12955127006703399
+W0130,document_crud,Majority-class baseline,Redis,True,1.100105000045914,Redis,1.100105000045914,0.0
+W0130,document_crud,Single-store default (MongoDB),MongoDB,True,1.2426250000089567,Redis,1.100105000045914,0.12955127006703399
+W0130,document_crud,Random feasible baseline,MongoDB,True,1.2426250000089567,Redis,1.100105000045914,0.12955127006703399
+W0139,key_value_crud,ML recommender,MongoDB,True,0.39878000006865477,Redis,0.29105999992680154,0.3700955135330985
+W0139,key_value_crud,Oracle best,Redis,True,0.29105999992680154,Redis,0.29105999992680154,0.0
+W0139,key_value_crud,Rule-based baseline,Redis,True,0.29105999992680154,Redis,0.29105999992680154,0.0
+W0139,key_value_crud,Majority-class baseline,Redis,True,0.29105999992680154,Redis,0.29105999992680154,0.0
+W0139,key_value_crud,Single-store default (MongoDB),MongoDB,True,0.39878000006865477,Redis,0.29105999992680154,0.3700955135330985
+W0139,key_value_crud,Random feasible baseline,Redis,True,0.29105999992680154,Redis,0.29105999992680154,0.0
+W0140,key_value_crud,ML recommender,Redis,True,1.1375600001883868,Redis,1.1375600001883868,0.0
+W0140,key_value_crud,Oracle best,Redis,True,1.1375600001883868,Redis,1.1375600001883868,0.0
+W0140,key_value_crud,Rule-based baseline,Redis,True,1.1375600001883868,Redis,1.1375600001883868,0.0
+W0140,key_value_crud,Majority-class baseline,Redis,True,1.1375600001883868,Redis,1.1375600001883868,0.0
+W0140,key_value_crud,Single-store default (MongoDB),MongoDB,True,1.4408600001843295,Redis,1.1375600001883868,0.2666232989431014
+W0140,key_value_crud,Random feasible baseline,Redis,True,1.1375600001883868,Redis,1.1375600001883868,0.0

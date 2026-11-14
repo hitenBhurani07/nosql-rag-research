@@ -238,14 +238,62 @@ def run_crud_matrix(
 ) -> pd.DataFrame:
     """Execute a matrix of CRUD benchmarks in small batches with resume support."""
     existing = load_raw_runs(output_csv)
-    completed: set[tuple[str, str, int]] = set()
-    if not existing.empty and {"workload_id", "database", "repetition", "status"}.issubset(
-        existing.columns
-    ):
-        ok_rows = existing[existing["status"] == "success"]
+    completed: set[tuple[str, str, int, int]] = set()
+    if not existing.empty:
+        required_resume_columns = {
+            "workload_id",
+            "database",
+            "concurrency",
+            "repetition",
+            "status",
+            "data_provenance",
+            "error_count",
+            "error_rate",
+            "p50_latency_ms",
+            "p95_latency_ms",
+            "p99_latency_ms",
+        }
+        missing_resume_columns = sorted(required_resume_columns - set(existing.columns))
+        if missing_resume_columns:
+            raise ValueError(
+                "Cannot safely resume from a CSV missing completion-validation columns: "
+                f"{missing_resume_columns}"
+            )
+
+        numeric = existing[
+            [
+                "concurrency",
+                "repetition",
+                "error_count",
+                "error_rate",
+                "p50_latency_ms",
+                "p95_latency_ms",
+                "p99_latency_ms",
+            ]
+        ].apply(pd.to_numeric, errors="coerce")
+        latency = numeric[["p50_latency_ms", "p95_latency_ms", "p99_latency_ms"]]
+        valid_latency = (
+            latency.notna().all(axis=1)
+            & np.isfinite(latency).all(axis=1)
+            & (latency > 0).all(axis=1)
+            & (latency["p50_latency_ms"] <= latency["p95_latency_ms"])
+            & (latency["p95_latency_ms"] <= latency["p99_latency_ms"])
+        )
+        completed_mask = (
+            (existing["status"].astype(str) == "success")
+            & (existing["data_provenance"].astype(str) == DataProvenance.GENUINE_BENCHMARK.value)
+            & (numeric["error_count"] == 0)
+            & (numeric["error_rate"].between(0, 0.01))
+            & valid_latency
+        )
         completed = {
-            (str(r["workload_id"]), str(r["database"]), int(r["repetition"]))
-            for _, r in ok_rows.iterrows()
+            (
+                str(row["workload_id"]),
+                str(row["database"]),
+                int(numeric.loc[index, "concurrency"]),
+                int(numeric.loc[index, "repetition"]),
+            )
+            for index, row in existing.loc[completed_mask].iterrows()
         }
 
     pending: list[tuple[dict[str, Any], str, int]] = []
@@ -253,7 +301,12 @@ def run_crud_matrix(
         prof_dict = prof.to_dict()
         for rep in range(1, repetitions + 1):
             for db in databases:
-                key = (str(prof_dict["workload_id"]), str(db), rep)
+                key = (
+                    str(prof_dict["workload_id"]),
+                    str(db),
+                    int(prof_dict["concurrency"]),
+                    rep,
+                )
                 if key not in completed:
                     pending.append((prof_dict, str(db), rep))
 

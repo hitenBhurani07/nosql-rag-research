@@ -17,6 +17,22 @@ NoSQL store selection has historically relied on qualitative rules of thumb or v
 4. Quantifies feature contributions via **SHAP** and evaluates recommendations using **relative latency regret** against the Oracle best feasible engine.
 5. Validates vector similarity retrieval in an end-to-end RAG setting on **BEIR SciFact**.
 
+### 1.1 Empirical Results Summary (Verified Benchmark)
+
+The experimental benchmark was completed on Windows 11 with local containerized engines:
+- **CRUD Matrix Execution**: **900 genuine benchmark runs** across 150 workload profiles (75 base profiles $\times$ 2 concurrency levels $c=1, 4$ $\times$ 3 repetitions) across Redis and MongoDB.
+- **Derived Labels**: 150 ground-truth labels under `min_p95_latency_ms` (85 Redis, 65 MongoDB).
+- **Best Machine Learning Model**: **Random Forest**
+  - **Cross-Validation Macro-F1**: **0.8245** ($\pm 0.0300$) via 5-fold StratifiedGroupKFold (`base_workload_id`).
+  - **Held-Out Test Macro-F1**: **0.7871** (Accuracy = 0.7895).
+- **Latency Regret**:
+  - **ML Recommender**: **4.33%** mean relative regret vs Oracle best feasible engine.
+  - **Baselines**: Majority-class (13.46%), Rule-based heuristic (14.08%), Random feasible (15.16%), Single-store MongoDB default (19.11%).
+- **Specialized Vector Store (Qdrant)**:
+  - **Native ANN**: **100% Recall@10** on 2,000 vectors with 15.07 ms P50 query latency.
+  - **BEIR SciFact RAG Retrieval**: **0.8720 Recall@10**, **0.7384 NDCG@10**, and **0.7047 MRR**.
+- **Comprehensive Audit**: See `PROJECT_STATUS.json` and [reports/FINAL_REPORT.md](file:///c:/Users/hiten/nosql-rag-research/reports/FINAL_REPORT.md).
+
 ---
 
 ## 2. Candidate Database Technologies
@@ -104,6 +120,23 @@ Verify endpoints without leaking credentials:
 nosql-rag check-connections
 ```
 
+### 4.2.1 Unified Research CLI
+
+The system provides a unified CLI (`nosql-rag`) for the entire research lifecycle:
+```powershell
+# Check current research system status and artifact presence
+uv run nosql-rag status
+
+# Evaluate trained models, baselines, and calculate latency regret
+uv run nosql-rag evaluate
+
+# Explain best model with SHAP summary plots
+uv run nosql-rag explain
+
+# Get a two-stage recommendation for a workload
+uv run nosql-rag recommend --input '{"query_type": "point_lookup", "read_ratio": 0.9, "write_ratio": 0.1, "payload_bytes": 1024, "concurrency": 4, "dataset_records": 5000, "data_size_mb": 5.0, "workload_family": "operational_crud"}'
+```
+
 ### 4.3 Running Tests
 
 Fast unit test suite (runs in ~25 seconds):
@@ -115,6 +148,18 @@ Integration test suite (requires live database instances):
 ```bash
 pytest -v -m integration
 ```
+
+### 4.3.1 Auditing a Saved CRUD Matrix
+
+The audit reads the CSV without changing it and compares run attempts with the
+deterministic 1,800-key Approach B design:
+
+```bash
+python scripts/audit_crud_matrix.py data/raw/crud_benchmark_runs.csv
+```
+
+Pass another CSV path to audit a newly downloaded Google Drive checkpoint. Add
+`--include-keys` to print every missing, failed, and repeated configuration key.
 
 ### 4.4 Launching the Interactive Dashboard
 

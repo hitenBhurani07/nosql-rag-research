@@ -1,0 +1,4 @@
+model,accuracy,macro_f1,weighted_f1,macro_precision,macro_recall
+Random Forest,0.7895,0.7871,0.7895,0.7871,0.7871
+Decision Tree,0.7895,0.7841,0.7877,0.7913,0.7815
+Gradient Boosting,0.7895,0.7841,0.7877,0.7913,0.7815

@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
+from nosql_rag.benchmarking import audit_crud_matrix
 from nosql_rag.data.persistence import load_raw_runs
+from nosql_rag.explainability.shap_explainer import explain_instance_with_shap
 from nosql_rag.models.inference import recommend_database
 from nosql_rag.models.training import load_model_artifacts
-from nosql_rag.workloads.compatibility import ALL_DATABASES
+from nosql_rag.workloads.compatibility import ALL_DATABASES, evaluate_feasibility
 
 st.set_page_config(
     page_title="NoSQL Pattern Selector — RAG Research",
@@ -29,6 +32,10 @@ st.caption(
 raw_runs_path = Path("data/raw/crud_benchmark_runs.csv")
 sample_syn_path = Path("data/sample/synthetic_demo_runs.csv")
 model_path = Path("results/models/best_nosql_recommender.joblib")
+model_metrics_path = Path("reports/tables/model_comparison.csv")
+regret_table_path = Path("reports/tables/latency_regret_by_workload.csv")
+figures_path = Path("results/figures")
+benchmark_results_path = Path("results/benchmarks")
 
 runs_df = pd.DataFrame()
 if raw_runs_path.exists() and raw_runs_path.stat().st_size > 0:
@@ -41,9 +48,15 @@ else:
     provenance_type = "none"
 
 if provenance_type == "genuine_experiments":
-    st.success(
-        f"✅ Loaded {len(runs_df)} genuine benchmark run records. Data provenance: Genuine Benchmarks."
-    )
+    provenance = runs_df.get("data_provenance", pd.Series(dtype=str))
+    genuine_count = int((provenance == "genuine_benchmark").sum())
+    synthetic_count = int((provenance == "synthetic_demo").sum())
+    st.success(f"Loaded {genuine_count} genuine benchmark rows ({len(runs_df)} total records).")
+    if synthetic_count:
+        st.warning(
+            f"The raw file contains {synthetic_count} synthetic demo rows. "
+            "They are excluded from genuine benchmark comparisons."
+        )
 elif provenance_type == "synthetic_demo":
     st.warning(
         "⚠️ DEMONSTRATION MODE: Using synthetic demonstration measurements (`data_provenance=synthetic_demo`). "
@@ -54,8 +67,16 @@ else:
         "ℹ️ No benchmark data available yet. Please run the pilot or full benchmark matrix via CLI or Google Colab."
     )
 
-tab_rec, tab_feasibility, tab_benchmarks, tab_about = st.tabs(
-    ["🎯 Pattern Recommender", "⚖️ Compatibility Matrix", "📊 Benchmark Explorer", "📖 Research Methodology"]
+tab_rec, tab_feasibility, tab_benchmarks, tab_models, tab_regret, tab_retrieval, tab_about = st.tabs(
+    [
+        "Pattern Recommender",
+        "Compatibility",
+        "CRUD Benchmarks",
+        "Models & SHAP",
+        "Latency Regret",
+        "Retrieval & Graph",
+        "Methodology",
+    ]
 )
 
 # -----------------------------------------------------------------------------
@@ -122,48 +143,76 @@ with tab_rec:
     }
 
     if st.button("Generate Recommendation", type="primary"):
-        st.markdown("---")
         pipeline = None
         if model_path.exists():
             try:
                 pipeline = load_model_artifacts(model_path)
-            except Exception as e:
-                st.error(f"Failed to load trained model: {e}")
+            except Exception as exc:
+                st.error(f"Failed to load trained model: {exc}")
 
-        # Execute two-stage recommendation
-        result = recommend_database(workload_input, trained_pipeline=pipeline)
-
-        rec_col, detail_col = st.columns([1, 2])
-        with rec_col:
-            st.metric(
-                label="Recommended Pattern",
-                value=result["recommended_database"],
-                delta=f"Stage: {result['stage']}",
-            )
-            st.info(f"**Workload Family:** `{result['workload_family']}`")
-            st.markdown(f"**Evaluation Protocol:** `{result['evaluation_protocol']}`")
-
-        with detail_col:
-            st.markdown("#### Selection Rationale")
-            st.write(result["notes"])
-
-            st.markdown("#### Feasible vs. Rejected Engines")
-            for db in ALL_DATABASES:
-                if db in result["feasible_databases"]:
-                    st.write(f"- ✅ **{db}**: Feasible for this workload")
-                else:
-                    reason = result["rejected_reasons"].get(db, "Incompatible data model")
-                    st.write(f"- ❌ **{db}**: {reason}")
-
-            if result.get("class_probabilities"):
-                st.markdown("#### Model Selection Probabilities")
-                prob_df = pd.DataFrame(
-                    [
-                        {"Database": k, "Probability": round(v, 4)}
-                        for k, v in result["class_probabilities"].items()
-                    ]
+        try:
+            feasibility = evaluate_feasibility(workload_input)
+        except (KeyError, TypeError, ValueError) as exc:
+            st.error(f"Could not evaluate workload feasibility: {exc}")
+        else:
+            if pipeline is None and feasibility.requires_ml_selection:
+                st.warning(
+                    "Feasibility was evaluated, but ML ranking is unavailable until a "
+                    "validated model artifact is installed. No store was guessed."
                 )
-                st.bar_chart(prob_df.set_index("Database"))
+                st.write(f"**Feasible candidates:** {', '.join(feasibility.feasible_databases)}")
+                st.write(feasibility.notes)
+            else:
+                try:
+                    result = recommend_database(workload_input, trained_pipeline=pipeline)
+                except (KeyError, TypeError, ValueError) as exc:
+                    st.error(f"Recommendation unavailable: {exc}")
+                else:
+                    rec_col, detail_col = st.columns([1, 2])
+                    with rec_col:
+                        st.metric(
+                            label="Recommended Pattern",
+                            value=result["recommended_database"],
+                            delta=f"Stage: {result['stage']}",
+                        )
+                        st.info(f"**Workload Family:** `{result['workload_family']}`")
+                        st.markdown(f"**Evaluation Protocol:** `{result['evaluation_protocol']}`")
+
+                    with detail_col:
+                        st.markdown("#### Selection Rationale")
+                        st.write(result["notes"])
+                        st.markdown("#### Feasible vs. Rejected Engines")
+                        for db in ALL_DATABASES:
+                            if db in result["feasible_databases"]:
+                                st.write(f"- **{db}**: feasible for this workload")
+                            else:
+                                reason = result["rejected_reasons"].get(db, "Incompatible data model")
+                                st.write(f"- **{db}**: {reason}")
+
+                        if result.get("class_probabilities"):
+                            st.markdown("#### Model Selection Probabilities")
+                            prob_df = pd.DataFrame(
+                                [
+                                    {"Database": key, "Probability": round(value, 4)}
+                                    for key, value in result["class_probabilities"].items()
+                                ]
+                            )
+                            st.bar_chart(prob_df.set_index("Database"))
+
+                    if pipeline is not None and result["stage"] == "stage_2_ml_performance_selection":
+                        st.markdown("#### SHAP explanation for this workload")
+                        try:
+                            attribution = explain_instance_with_shap(
+                                pipeline,
+                                pd.DataFrame([workload_input]),
+                                result["recommended_database"],
+                            )
+                            st.dataframe(attribution.head(12), width="stretch")
+                            st.caption(
+                                "SHAP attributions explain model output behavior, not causal effects."
+                            )
+                        except Exception as exc:
+                            st.info(f"Instance explanation is unavailable: {exc}")
 
 # -----------------------------------------------------------------------------
 # Tab 2: Compatibility Matrix
@@ -226,26 +275,122 @@ with tab_feasibility:
             "Qdrant": "✅ Native Dense Retrieval",
         },
     ]
-    st.dataframe(pd.DataFrame(matrix_data), use_container_width=True)
+    st.dataframe(pd.DataFrame(matrix_data), width="stretch")
 
 # -----------------------------------------------------------------------------
-# Tab 3: Benchmark Explorer
+# Tab 3: CRUD Benchmark Explorer
 # -----------------------------------------------------------------------------
 with tab_benchmarks:
-    st.subheader("Experimental Results Explorer")
+    st.subheader("Experimental CRUD Results")
     if runs_df.empty:
-        st.write("No measurements available.")
+        st.info("No CRUD measurements are available.")
     else:
-        st.dataframe(runs_df.head(50), use_container_width=True)
-        if "p95_latency_ms" in runs_df.columns and "database" in runs_df.columns:
-            st.markdown("#### Latency by Database (p95 ms)")
-            fig_data = (
-                runs_df[runs_df["status"] == "success"]
-                .groupby("database")["p95_latency_ms"]
-                .median()
+        successful = runs_df[runs_df.get("status", pd.Series(index=runs_df.index)) == "success"]
+        if "data_provenance" in successful:
+            genuine = successful[successful["data_provenance"] == "genuine_benchmark"]
+        else:
+            genuine = successful.iloc[0:0]
+
+        metric_cols = st.columns(3)
+        metric_cols[0].metric("Raw attempts", len(runs_df))
+        metric_cols[1].metric("Successful attempts", len(successful))
+        metric_cols[2].metric("Genuine successful rows", len(genuine))
+
+        try:
+            matrix_audit = audit_crud_matrix(runs_df)
+        except (KeyError, TypeError, ValueError) as exc:
+            st.warning(f"Matrix completeness could not be established: {exc}")
+        else:
+            st.metric(
+                "Validated expected matrix keys",
+                f"{matrix_audit['completed_genuine_keys']} / {matrix_audit['expected_run_keys']}",
+            )
+            if not matrix_audit["is_complete"]:
+                st.warning("The saved CRUD data does not yet complete the approved 1,800-run matrix.")
+            if matrix_audit["duplicate_run_ids"] or matrix_audit["duplicate_successful_keys"]:
+                st.error("Duplicate run IDs or successful configuration keys require review.")
+            if matrix_audit["successful_measurement_errors"]:
+                st.error("Some successful rows have invalid latency or error-rate measurements.")
+            if matrix_audit["profile_mismatches"]:
+                st.error("Recorded workload concurrency or base grouping does not match the profile design.")
+            if not matrix_audit["integrity_passed"]:
+                st.error("The raw dataset has integrity issues and must be reviewed before training.")
+
+        if not genuine.empty and {"p95_latency_ms", "database"}.issubset(genuine.columns):
+            st.markdown("#### Genuine run p95 latency by database")
+            summary = (
+                genuine.groupby("database")["p95_latency_ms"]
+                .agg(median_p95_ms="median", run_count="count")
                 .reset_index()
             )
-            st.bar_chart(fig_data.set_index("database"))
+            st.dataframe(summary, width="stretch", hide_index=True)
+            st.bar_chart(summary.set_index("database")["median_p95_ms"])
+
+        st.markdown("#### Raw run records")
+        st.dataframe(runs_df, width="stretch", hide_index=True)
+
+# -----------------------------------------------------------------------------
+# Tab 4: Model Evaluation and SHAP
+# -----------------------------------------------------------------------------
+with tab_models:
+    st.subheader("Model Evaluation and Explainability")
+    if model_metrics_path.exists():
+        metrics = pd.read_csv(model_metrics_path)
+        st.markdown("#### Held-out model comparison")
+        st.dataframe(metrics, width="stretch", hide_index=True)
+    else:
+        st.info("Held-out model metrics are not available yet.")
+
+    for filename, title in (
+        ("confusion_matrix_best_model.png", "Held-out confusion matrix"),
+        ("model_comparison.png", "Held-out model metrics"),
+        ("shap_summary.png", "Global multi-class SHAP summary"),
+    ):
+        figure = figures_path / filename
+        st.markdown(f"#### {title}")
+        if figure.exists():
+            st.image(str(figure), width="stretch")
+        else:
+            st.info(f"{filename} has not been generated from validated benchmark data.")
+
+# -----------------------------------------------------------------------------
+# Tab 5: Latency Regret
+# -----------------------------------------------------------------------------
+with tab_regret:
+    st.subheader("Latency Regret Against Baselines")
+    regret_figure = figures_path / "latency_regret_comparison.png"
+    if regret_figure.exists():
+        st.image(str(regret_figure), width="stretch")
+    else:
+        st.info("Latency regret visualization is not available yet.")
+    if regret_table_path.exists():
+        regret = pd.read_csv(regret_table_path)
+        st.dataframe(regret, width="stretch", hide_index=True)
+    else:
+        st.info("Per-workload regret measurements are not available yet.")
+
+# -----------------------------------------------------------------------------
+# Tab 6: Separate Retrieval and Graph Results
+# -----------------------------------------------------------------------------
+with tab_retrieval:
+    st.subheader("Separate RAG Retrieval and Graph Experiments")
+    result_files = (
+        ("qdrant_ann_runs.json", "Qdrant ANN"),
+        ("beir_scifact_qdrant_results.json", "BEIR SciFact retrieval"),
+        ("neo4j_graph_traversal_runs.json", "Neo4j graph traversal"),
+    )
+    for filename, title in result_files:
+        result_path = benchmark_results_path / filename
+        with st.expander(title, expanded=True):
+            if result_path.exists():
+                try:
+                    result = json.loads(result_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError) as exc:
+                    st.error(f"Could not read {filename}: {exc}")
+                else:
+                    st.json(result)
+            else:
+                st.info(f"{filename} is not available.")
 
 # -----------------------------------------------------------------------------
 # Tab 4: Methodology
@@ -260,7 +405,7 @@ with tab_about:
            - **Stage 2 (Performance):** Ranks feasible candidates using ML models trained strictly on genuine experimental measurements.
         2. **Research Integrity:**
            - Synthetic demonstration data is strictly tagged `synthetic_demo` and barred from training research models.
-           - Grouped splits by `workload_id` guarantee no test-set leakage.
+           - Grouped splits by `base_workload_id` keep matched concurrency pairs out of different splits.
         3. **Explainability & Regret:**
            - Feature contributions are interpreted via SHAP.
            - Quality is measured by relative latency regret against the Oracle best feasible store.

@@ -10,6 +10,7 @@ class DataProvenance(str, Enum):
 
     SYNTHETIC_DEMO = "synthetic_demo"
     PILOT_BENCHMARK = "pilot_benchmark"
+    REMOTE_CLOUD_PILOT = "remote_cloud_pilot"
     GENUINE_BENCHMARK = "genuine_benchmark"
     AGGREGATED_EXPERIMENTAL = "aggregated_experimental"
     MODEL_READY = "model_ready"

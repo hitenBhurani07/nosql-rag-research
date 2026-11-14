@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: nosql-rag-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+
+  mongodb:
+    image: mongo:7.0
+    container_name: nosql-rag-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=nosql_rag_research
+    deploy:
+      resources:
+        limits:
+          memory: 1024m
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 4s
+      timeout: 3s
+      retries: 8
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    container_name: nosql-rag-qdrant
+    ports:
+      - "6333:6333"
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333'"]
+      interval: 4s
+      timeout: 3s
+      retries: 8
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: nosql-rag-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      - MAX_HEAP_SIZE=1G
+      - HEAP_NEWSIZE=256M
+    deploy:
+      resources:
+        limits:
+          memory: 2048m
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep -E '^UN\\s'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    profiles:
+      - full-only
+
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: nosql-rag-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/nosql_rag_password
+      - NEO4J_server_memory_heap_initial__size=512m
+      - NEO4J_server_memory_heap_max__size=1024m
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p nosql_rag_password 'RETURN 1'"]
+      interval: 5s
+      timeout: 4s
+      retries: 10
+    profiles:
+      - full-only
+

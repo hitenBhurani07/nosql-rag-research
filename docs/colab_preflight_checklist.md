@@ -76,7 +76,7 @@ Add the following secrets in Google Colab (Key icon in left sidebar) and enable 
 
 1. **Step 1 (Pilot):** Set `RUN_PILOT = True` $\to$ Execute 8 operational CRUD runs (250 ops/run) $\to$ Validate `data/raw/crud_benchmark_runs.csv`.
 2. **Step 2 (Vector/RAG Pilot):** Set `RUN_QDRANT_ANN_PILOT = True` and `RUN_BEIR_RAG = True` $\to$ Confirm ANN Recall@K and BEIR IR metrics.
-3. **Step 3 (Full Matrix):** Set `RUN_FULL_MATRIX = True` $\to$ Execute 900 runs in batches of 5 (resume support enabled).
-4. **Step 4 (Validation & Labeling):** Run data validation $\to$ Derive $N = 75$ labelled workload rows under `min_p95_latency_ms`.
+3. **Step 3 (Full Matrix):** Set `RUN_FULL_MATRIX = True` $\to$ Execute the 1,800-run Approach B matrix (75 base workloads x concurrency 1/4 x 4 engines x 3 repetitions) in resumable batches.
+4. **Step 4 (Validation & Labeling):** Validate all 1,800 expected keys and derive measured labels. Keep the 150 matched profiles grouped into 75 `base_workload_id` groups for all ML splits.
 5. **Step 5 (ML & Explainability):** Set `RUN_ML_TRAINING = True` and `RUN_SHAP = True` $\to$ Train Decision Tree, Random Forest, Gradient Boosting $\to$ Evaluate latency regret vs. Oracle $\to$ Export SHAP summary.
 6. **Step 6 (Export):** Run Cells 55–57 $\to$ Download `NoSQL_RAG_Research_Artifacts.zip`.
