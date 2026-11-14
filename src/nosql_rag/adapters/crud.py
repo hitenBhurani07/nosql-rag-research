@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import ssl
 import time
 from pathlib import Path
@@ -214,18 +215,39 @@ class CassandraAdapter(BaseCRUDAdapter):
             host_list = [h.strip() for h in hosts.split(",") if h.strip()]
             auth = PlainTextAuthProvider(username=username, password=password) if username else None
             ssl_context = ssl.create_default_context() if use_ssl else None
+            import sys
+            if sys.platform == "win32":
+                try:
+                    import ctypes
+                    ctypes.windll.winmm.timeBeginPeriod(1)
+                except Exception:
+                    pass
+
             cluster_kwargs: dict[str, Any] = {
                 "contact_points": host_list,
                 "port": int(port),
                 "auth_provider": auth,
                 "ssl_context": ssl_context,
                 "connect_timeout": 10,
+                "sockopts": [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)],
             }
             if protocol_version is not None:
                 cluster_kwargs["protocol_version"] = protocol_version
             self.cluster = Cluster(**cluster_kwargs)
 
-        self.session = self.cluster.connect(keyspace)
+        from cassandra import ConsistencyLevel
+
+        try:
+            self.session = self.cluster.connect(keyspace)
+        except Exception:
+            init_session = self.cluster.connect()
+            init_session.execute(
+                f"CREATE KEYSPACE IF NOT EXISTS {keyspace} "
+                "WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};"
+            )
+            init_session.set_keyspace(keyspace)
+            self.session = init_session
+        self.session.default_consistency_level = ConsistencyLevel.ONE
         self.prepared: dict[str, dict[str, Any]] = {}
 
     def check(self) -> bool:
@@ -262,11 +284,24 @@ class CassandraAdapter(BaseCRUDAdapter):
             ),
         }
 
+    def _ensure_prepared(self, run_id: str) -> None:
+        if run_id not in self.prepared:
+            table = self._table(run_id)
+            self.prepared[run_id] = {
+                "table": table,
+                "select": self.session.prepare(f"SELECT record_id FROM {table} WHERE record_id = ?"),
+                "update": self.session.prepare(
+                    f"UPDATE {table} SET payload_json = ? WHERE record_id = ?"
+                ),
+            }
+
     def read(self, run_id: str, record_id: str) -> bool:
+        self._ensure_prepared(run_id)
         result = self.session.execute(self.prepared[run_id]["select"], (str(record_id),)).one()
         return result is not None
 
     def update(self, run_id: str, record_id: str, payload_json: str) -> bool:
+        self._ensure_prepared(run_id)
         self.session.execute(self.prepared[run_id]["update"], (payload_json, str(record_id)))
         return True
 
@@ -285,6 +320,13 @@ class Neo4jAdapter(BaseCRUDAdapter):
     name = "Neo4j"
 
     def __init__(self, uri: str, username: str, password: str, database: str = "neo4j") -> None:
+        import sys
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                ctypes.windll.winmm.timeBeginPeriod(1)
+            except Exception:
+                pass
         from neo4j import GraphDatabase
 
         self.driver = GraphDatabase.driver(uri, auth=(username, password))

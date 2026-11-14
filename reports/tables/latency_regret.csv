@@ -1,7 +1,13 @@
-method,count,mean,median,p90,max
-Oracle best,38,0.0,0.0,0.0,0.0
-ML recommender,38,0.04328351277886646,0.0,0.1872874045243889,0.381989781873946
-Majority-class baseline,38,0.13459309247351073,0.0,0.32168379963932736,1.3370825653203002
-Rule-based baseline,32,0.14076073789047447,0.006888414699262725,0.3318226473241999,0.7627597216216211
-Random feasible baseline,38,0.15155269643244748,0.0,0.3691234943743425,1.3370825653203002
-Single-store default (MongoDB),38,0.19109655316789192,0.1470427854904684,0.44050291438141764,0.7627597216216211
+strategy,mean_regret,median_regret,p95_regret,evaluated_workloads,dataset
+Always-MongoDB,2.068176164568118,2.117977339369377,3.100634698039568,30,"2-Engine (Redis + MongoDB, 150 Profiles)"
+Always-Redis,0.0,0.0,0.0,30,"2-Engine (Redis + MongoDB, 150 Profiles)"
+ML Recommender (Random Forest),0.0,0.0,0.0,30,"2-Engine (Redis + MongoDB, 150 Profiles)"
+Majority Baseline,0.0,0.0,0.0,30,"2-Engine (Redis + MongoDB, 150 Profiles)"
+Oracle,0.0,0.0,0.0,30,"2-Engine (Redis + MongoDB, 150 Profiles)"
+Always-Cassandra,5.761004002987368,6.042520223027403,7.1845736635062325,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"
+Always-MongoDB,2.6439246317224914,2.4609565045301083,4.312254210337573,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"
+Always-Neo4j,17.70674570729537,16.116924085546373,26.442450565677944,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"
+Always-Redis,0.0,0.0,0.0,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"
+ML Recommender (Random Forest),0.0,0.0,0.0,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"
+Majority Baseline,0.0,0.0,0.0,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"
+Oracle,0.0,0.0,0.0,16,"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)"

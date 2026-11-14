@@ -1,4 +1,9 @@
-model,accuracy,macro_f1,weighted_f1,macro_precision,macro_recall
-Random Forest,0.7895,0.7871,0.7895,0.7871,0.7871
-Decision Tree,0.7895,0.7841,0.7877,0.7913,0.7815
-Gradient Boosting,0.7895,0.7841,0.7877,0.7913,0.7815
+dataset,model,accuracy,macro_f1
+"2-Engine (Redis + MongoDB, 150 Profiles)",Majority Baseline,1.0,1.0
+"2-Engine (Redis + MongoDB, 150 Profiles)",Decision Tree,1.0,1.0
+"2-Engine (Redis + MongoDB, 150 Profiles)",Random Forest,1.0,1.0
+"2-Engine (Redis + MongoDB, 150 Profiles)",Gradient Boosting,1.0,1.0
+"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)",Majority Baseline,1.0,1.0
+"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)",Decision Tree,1.0,1.0
+"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)",Random Forest,1.0,1.0
+"4-Engine (Redis + MongoDB + Cassandra + Neo4j, 76 Profiles)",Gradient Boosting,1.0,1.0

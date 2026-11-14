@@ -9,7 +9,6 @@ import os
 import random
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -45,6 +44,73 @@ def _compute_config_hash(
     return hashlib.sha256(json.dumps(fingerprint, sort_keys=True, default=str).encode()).hexdigest()[
         :20
     ]
+
+
+def _get_driver_version(database_name: str) -> str:
+    try:
+        if database_name == "Redis":
+            import redis
+            return f"redis-{redis.__version__}"
+        elif database_name == "MongoDB":
+            import pymongo
+            return f"pymongo-{pymongo.__version__}"
+        elif database_name == "Cassandra":
+            import cassandra
+            return f"cassandra-driver-{cassandra.__version__}"
+        elif database_name == "Neo4j":
+            import neo4j
+            return f"neo4j-{neo4j.__version__}"
+        elif database_name == "Qdrant":
+            import qdrant_client
+            return f"qdrant-client-{qdrant_client.__version__}"
+    except Exception:
+        pass
+    return "unknown"
+
+
+def _mp_bench_worker(
+    database_name: str,
+    db_config_dict: dict[str, Any],
+    run_id: str,
+    ops_slice: list[tuple[str, str, str]],
+    deadline: float,
+    queue: Any,
+) -> None:
+    try:
+        db_config = DatabaseConfig(**db_config_dict)
+        adapter = build_crud_adapter(database_name, db_config)
+        results = []
+        try:
+            for item in ops_slice:
+                if time.perf_counter() > deadline:
+                    results.append((0.0, "TimeoutError: benchmark exceeded timeout_seconds"))
+                    continue
+                op, rec_id, payload_json = item
+                op_start = time.perf_counter()
+                try:
+                    ok = (
+                        adapter.read(run_id, rec_id)
+                        if op == "read"
+                        else adapter.update(run_id, rec_id, payload_json)
+                    )
+                    elapsed = (time.perf_counter() - op_start) * 1000.0
+                    if not ok:
+                        results.append((elapsed, "operation_returned_false"))
+                    else:
+                        results.append((elapsed, None))
+                except Exception as exc:
+                    results.append((
+                        (time.perf_counter() - op_start) * 1000.0,
+                        f"{type(exc).__name__}: {str(exc)[:200]}",
+                    ))
+        finally:
+            try:
+                adapter.close()
+            except Exception:
+                pass
+        queue.put(results)
+    except Exception as e:
+        queue.put([(0.0, f"WorkerInitError: {str(e)[:200]}")])
 
 
 def benchmark_common_crud(
@@ -99,6 +165,9 @@ def benchmark_common_crud(
         "status": "failed",
         "error_summary": None,
         "data_provenance": provenance.value,
+        "client_placement": os.environ.get("CLIENT_PLACEMENT", "in-container-compose-network"),
+        "client_limits": os.environ.get("CLIENT_LIMITS", "cpus=2.0,mem=1024m"),
+        "driver_version": _get_driver_version(database_name),
     }
 
     try:
@@ -163,8 +232,26 @@ def benchmark_common_crud(
         if concurrency == 1:
             results = [_execute_one(item) for item in operations]
         else:
-            with ThreadPoolExecutor(max_workers=concurrency) as pool:
-                results = list(pool.map(_execute_one, operations))
+            import multiprocessing as mp
+            slices = [operations[i::concurrency] for i in range(concurrency)]
+            ctx = mp.get_context("spawn")
+            queue = ctx.Queue()
+            procs = []
+            db_cfg_dict = db_config.model_dump()
+            for i in range(concurrency):
+                p = ctx.Process(
+                    target=_mp_bench_worker,
+                    args=(database_name, db_cfg_dict, run_id, slices[i], deadline, queue),
+                )
+                procs.append(p)
+                p.start()
+            results = []
+            for _ in range(concurrency):
+                results.extend(queue.get())
+            for p in procs:
+                p.join(timeout=max(5.0, float(timeout_seconds)))
+                if p.is_alive():
+                    p.terminate()
         wall_seconds = time.perf_counter() - bench_start
 
         for lat, err in results:
@@ -230,7 +317,7 @@ def run_crud_matrix(
     db_config: DatabaseConfig,
     output_csv: Path,
     repetitions: int = 1,
-    batch_size: int = 5,
+    batch_size: int = 1,
     warmup_operations: int = 20,
     cleanup: bool = True,
     timeout_seconds: int = 120,
@@ -297,9 +384,9 @@ def run_crud_matrix(
         }
 
     pending: list[tuple[dict[str, Any], str, int]] = []
-    for _, prof in profiles.iterrows():
-        prof_dict = prof.to_dict()
-        for rep in range(1, repetitions + 1):
+    for rep in range(1, repetitions + 1):
+        for _, prof in profiles.iterrows():
+            prof_dict = prof.to_dict()
             for db in databases:
                 key = (
                     str(prof_dict["workload_id"]),

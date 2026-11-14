@@ -6,32 +6,41 @@
 
 A research system and explainable machine-learning framework that recommends appropriate NoSQL database patterns for diverse workloads (including Retrieval-Augmented Generation) using workload characteristics and empirical database performance measurements.
 
+**Author**: Hiten Bhurani (`2023.hiten.bhurani@ves.ac.in`)  
+**Repository**: [https://github.com/hitenBhurani07/nosql-rag-research](https://github.com/hitenBhurani07/nosql-rag-research)  
+**Hardware Environment**: Windows 11 Home, Intel Core i5-12500H (12 physical cores, 16 threads), 16 GB RAM, NVMe SSD, Docker Desktop with WSL2 capped at 3GB RAM.
+
 ---
 
-## 1. Research Overview
+## 1. Research Overview & Key Findings
 
 NoSQL store selection has historically relied on qualitative rules of thumb or vendor-driven advice. This research framework:
 1. Defines a **requirements-first, two-stage recommendation architecture** that respects fundamental data-model boundaries (Key-Value, Document, Wide-Column, Graph, Vector).
 2. Measures empirical latency and throughput across **Redis, MongoDB, Apache Cassandra, Neo4j, and Qdrant** under reproducible, controlled workload matrices.
-3. Trains explainable machine-learning models (Decision Tree, Random Forest, Gradient Boosting) using **leakage-safe grouped splits**.
-4. Quantifies feature contributions via **SHAP** and evaluates recommendations using **relative latency regret** against the Oracle best feasible engine.
-5. Validates vector similarity retrieval in an end-to-end RAG setting on **BEIR SciFact**.
+3. Employs a **pinned in-container benchmark client** (`nosql-rag-client:1.0`) on the internal compose network with process-based multiprocessing at $c=4$ to eliminate Windows loopback port-forwarding stalls and Python GIL contention.
+4. Evaluates explainable machine-learning models (Decision Tree, Random Forest, Gradient Boosting) using **leakage-safe grouped cross-validation** (`base_workload_id`).
+5. Quantifies feature contributions via **SHAP** and evaluates recommendations using **relative latency regret** against the Oracle best feasible engine.
+6. Validates vector similarity retrieval in an end-to-end RAG setting on **BEIR SciFact** across all 300 test queries.
 
-### 1.1 Empirical Results Summary (Verified Benchmark)
+### 1.1 In-Container Experimental Results Summary (Verified Benchmark)
 
-The experimental benchmark was completed on Windows 11 with local containerized engines:
-- **CRUD Matrix Execution**: **900 genuine benchmark runs** across 150 workload profiles (75 base profiles $\times$ 2 concurrency levels $c=1, 4$ $\times$ 3 repetitions) across Redis and MongoDB.
-- **Derived Labels**: 150 ground-truth labels under `min_p95_latency_ms` (85 Redis, 65 MongoDB).
-- **Best Machine Learning Model**: **Random Forest**
-  - **Cross-Validation Macro-F1**: **0.8245** ($\pm 0.0300$) via 5-fold StratifiedGroupKFold (`base_workload_id`).
-  - **Held-Out Test Macro-F1**: **0.7871** (Accuracy = 0.7895).
-- **Latency Regret**:
-  - **ML Recommender**: **4.33%** mean relative regret vs Oracle best feasible engine.
-  - **Baselines**: Majority-class (13.46%), Rule-based heuristic (14.08%), Random feasible (15.16%), Single-store MongoDB default (19.11%).
-- **Specialized Vector Store (Qdrant)**:
-  - **Native ANN**: **100% Recall@10** on 2,000 vectors with 15.07 ms P50 query latency.
-  - **BEIR SciFact RAG Retrieval**: **0.8720 Recall@10**, **0.7384 NDCG@10**, and **0.7047 MRR**.
-- **Comprehensive Audit**: See `PROJECT_STATUS.json` and [reports/FINAL_REPORT.md](file:///c:/Users/hiten/nosql-rag-research/reports/FINAL_REPORT.md).
+- **Total In-Container Genuine Runs**: **1,356 runs** across 4 engines with 0 errors (100% success rate):
+  - **Redis**: 450 runs (150 profiles $\times$ 3 reps, median P50: 0.090 ms, P95: 0.175 ms).
+  - **MongoDB**: 450 runs (150 profiles $\times$ 3 reps, median P50: 0.296 ms, P95: 0.584 ms).
+  - **Cassandra**: 228 runs (76 profiles $\times$ 3 reps, median P50: 0.613 ms, P95: 1.133 ms).
+  - **Neo4j**: 228 runs (76 profiles $\times$ 3 reps, median P50: 0.902 ms, P95: 3.269 ms).
+- **Repetition Winner Stability**: **98.67%** unanimous 3-repetition agreement on 2-engine (150 profiles), **100.00%** on 4-engine (76 profiles).
+- **Dual Machine Learning Analysis**:
+  - **Analysis A (2 Engines, 150 Profiles)**: In pure single-key CRUD, in-memory Redis dominates (149/150 wins). Decision Tree, Random Forest, and Gradient Boosting achieve 1.0000 test accuracy and Macro-F1, matching the Majority-class baseline with **0.00% latency regret** vs. Oracle. Deploying Always-MongoDB incurs **206.82%** mean regret.
+  - **Analysis B (4 Engines, 76 Profiles)**: Redis wins 76/76 profiles. Recommenders achieve 1.0000 accuracy / Macro-F1. Deploying Always-MongoDB incurs +264.39% regret, Always-Cassandra +576.10% regret, and Always-Neo4j +1770.67% regret.
+- **Methodology Finding (Windows Port-Forwarding Artifact)**:
+  - Host loopback proxying imposed a ~0.25 ms socket overhead that flipped ground truth winners on **42.67% of workloads** (64 / 150 profiles). Earlier 900 host-measured runs are quarantined as `data_provenance = 'host_port_forward_pilot'` and excluded from ML models.
+- **$c=4$ Concurrency Validity**:
+  - Python multi-threading suffered an 80.64% queueing penalty under $c=4$. Switching to process multiprocessing increased throughput 4.25x (from 4,580 to 19,490 ops/s) and dropped Redis P95 from 1.375 ms to 0.266 ms.
+- **Specialized Vector & Graph Evaluation**:
+  - **BEIR SciFact RAG Retrieval (All 300 Queries)**: **0.7833 Recall@10**, **0.6451 NDCG@10**, **0.6047 MRR**, with 15.32 ms P50 search latency.
+  - **Native Qdrant ANN**: **100.0% Recall@10** on 2,000 vectors with 15.07 ms P50 latency.
+  - **Neo4j Graph Traversal**: 100 queries at 2-hop depth, 270.4 ops/s, P50 latency: **2.99 ms**, P95: **4.09 ms**.
 
 ---
 
@@ -39,9 +48,9 @@ The experimental benchmark was completed on Windows 11 with local containerized 
 
 | Database | Data Model | Native Workload Family | Role in Framework |
 | --- | --- | --- | --- |
-| **Redis** | Key-Value | `key_value_crud` | Sub-millisecond key-value reads/updates, caching |
-| **MongoDB** | Document | `document_crud` | Flexible JSON document CRUD, structured indexing |
-| **Apache Cassandra** | Wide-Column | `wide_column_crud` | High-throughput partitioned writes and primary reads |
+| **Redis** | Key-Value | `key_value_crud` | Sub-millisecond key-value reads/updates, operational state caching |
+| **MongoDB** | Document | `document_crud` | JSON document CRUD, structured secondary indexing |
+| **Apache Cassandra** | Wide-Column | `wide_column_crud` | High-throughput partitioned append writes and point lookups |
 | **Neo4j** | Property Graph | `graph_traversal` | Multi-hop relationship traversal and graph pattern matching |
 | **Qdrant** | Vector Store | `vector_similarity`, `rag_retrieval` | Dense HNSW vector similarity search and RAG retrieval |
 
@@ -54,139 +63,97 @@ nosql-rag-research/
 ├── configs/
 │   ├── experiment.yaml             # Central reproducible experiment configuration
 │   └── infrastructure.yaml         # Cloud provider quotas, timeouts & deployment modes
+├── data/
+│   ├── raw/
+│   │   └── crud_benchmark_runs.csv # 2,269 total runs (1,356 in-container genuine + 900 host pilot + 8 cloud + 5 artifacts)
+│   ├── processed/
+│   │   ├── workload_profiles.csv   # 150 factorial workload profiles (75 base x c=1, 4)
+│   │   ├── aggregated_benchmark_runs.csv # Median metrics per workload and engine
+│   │   └── labelled_workloads.csv  # Derived ground-truth labels for ML training
+│   └── sample/
+│       └── scifact/                # BEIR SciFact biomedical passage retrieval corpus
+├── docker-compose.yml              # Pinned database services and in-container benchmark runner
+├── Dockerfile.client               # Pinned client container definition (nosql-rag-client:1.0)
 ├── docs/
-│   ├── architecture.md             # System architecture & Mermaid pipeline diagram
-│   ├── colab_execution_guide.md    # Step-by-step Colab runbook & secrets guide
-│   ├── experiment_protocol.md      # Formal benchmarking and evaluation protocol
-│   ├── implementation_gap_analysis.md # Audit findings & resolution matrix
-│   ├── implementation_status.md    # Live phase tracker
-│   ├── known_limitations.md        # Scientific and hardware limitations
-│   ├── research_requirements.md    # Requirements extracted from research brief
-│   ├── infrastructure/             # Cloud infrastructure guides (Redis, Mongo, Astra, Neo4j, Qdrant)
-│   └── methodology/
-│       ├── database_comparability.md # Two-stage recommendation methodology
-│       └── data_collection_protocol.md # Strict provenance & validation protocol
-├── notebooks/
-│   └── NoSQL_RAG_Implementation_Colab.ipynb # Refactored Colab execution notebook
+│   ├── GOAL_STATE.md               # Goal execution state, timestamps, time budget, and step log
+│   ├── PREFLIGHT.md                # Hardware environment and memory threshold preflight record
+│   ├── DECISIONS.md                # Architectural decisions, network latency resolution, and hardware safety rationale
+│   ├── AUDIT.md                    # Workspace audit report
+│   └── PROGRESS.md                 # Phase-by-phase execution progress log
+├── reports/
+│   ├── FINAL_REPORT.md             # Authoritative research report and methodology investigation
+│   ├── figures/                    # Latency regret charts and SHAP summary plots
+│   └── tables/                     # Model comparison, cross-validation, and regret tables
+├── results/
+│   ├── benchmarks/                 # Qdrant ANN, BEIR SciFact, and Neo4j graph traversal results
+│   ├── figures/                    # Synced publication figures
+│   └── models/
+│       └── best_nosql_recommender.joblib # Persisted recommendation model pipeline
 ├── scripts/
-│   └── database_preflight.py       # Independent multi-database health check script
+│   ├── run_engine_matrix.py        # In-container CRUD matrix execution script
+│   ├── run_dual_evaluation.py      # Dual ML evaluation and regret pipeline
+│   ├── run_beir_full.py            # Complete 300-query BEIR SciFact evaluation
+│   └── compare_c4_concurrency.py   # c=4 Threaded vs. Multiprocess validation
 ├── src/
-│   └── nosql_rag/                  # Consolidated Python package
-│       ├── adapters/               # Native DB adapters (Redis, Mongo, Cassandra/Astra, Neo4j, Qdrant)
-│       ├── benchmarking/           # Controlled benchmark harness & matrix runner
-│       ├── dashboard/              # Streamlit interactive recommendation dashboard
-│       ├── data/                   # Schemas, integrity validator, persistence & demo generator
-│       ├── evaluation/             # Relative latency regret evaluator
-│       ├── explainability/         # Multi-class SHAP global & instance explainer
-│       ├── features/               # ColumnTransformer & GroupShuffleSplit
-│       ├── models/                 # DT, RF, GBDT trainers & two-stage inference
-│       ├── rag/                    # Qdrant ANN benchmark & BEIR SciFact evaluator
-│       ├── workloads/              # Compatibility filter & profile generator
-│       ├── cli.py                  # CLI entry point (nosql-rag)
-│       └── config.py               # Pydantic configuration & safe secret handler
-├── tests/
-│   ├── unit/                       # 28 unit tests covering all modules, dual-mode adapters & redaction
-│   └── integration/                # Marked integration tests requiring live databases
-├── .env.example                    # Template for database credentials (never commit .env)
-├── .gitignore                      # Excludes credentials, caches, raw/processed data, models
-└── pyproject.toml                  # PEP 621 package and dependency definitions
+│   └── nosql_rag/                  # Core Python package
+└── tests/
+    └── unit/                       # 44 unit tests covering schemas, validation, adapters & gating
 ```
 
 ---
 
-## 4. Quick Start
+## 4. Quick Start & Verification
 
-### 4.1 Installation
-
-```bash
-git clone https://github.com/hitenBhurani07/nosql-rag-research.git
-cd nosql-rag-research
-
-# Create virtual environment and install in editable mode with dev tools
-uv venv --python 3.12 .venv
-.venv\Scripts\activate          # Windows (.venv/bin/activate on Linux/macOS)
-uv pip install -e ".[dev,databases,dashboard]"
-```
-
-### 4.2 Configure Database Endpoints (Optional locally)
-
-Copy `.env.example` to `.env` and fill in your connection strings:
-```bash
-cp .env.example .env
-```
-
-Verify endpoints without leaking credentials:
-```bash
-nosql-rag check-connections
-```
-
-### 4.2.1 Unified Research CLI
-
-The system provides a unified CLI (`nosql-rag`) for the entire research lifecycle:
+### 4.1 Environment Setup
 ```powershell
-# Check current research system status and artifact presence
-uv run nosql-rag status
+# 1. Create virtual environment and install package
+uv venv --python 3.12 .venv
+.venv\Scripts\activate
+uv pip install -e ".[all]"
 
-# Evaluate trained models, baselines, and calculate latency regret
-uv run nosql-rag evaluate
+# 2. Run test suite (44 passed)
+uv run pytest tests/unit -q
 
-# Explain best model with SHAP summary plots
-uv run nosql-rag explain
-
-# Get a two-stage recommendation for a workload
-uv run nosql-rag recommend --input '{"query_type": "point_lookup", "read_ratio": 0.9, "write_ratio": 0.1, "payload_bytes": 1024, "concurrency": 4, "dataset_records": 5000, "data_size_mb": 5.0, "workload_family": "operational_crud"}'
+# 3. Check code formatting
+uv run ruff check .
 ```
 
-### 4.3 Running Tests
+### 4.2 In-Container Benchmark Execution
+```powershell
+# Build pinned client runner
+docker build -t nosql-rag-client:1.0 -f Dockerfile.client .
 
-Fast unit test suite (runs in ~25 seconds):
-```bash
-pytest -v -m "not integration"
+# Run Redis matrix (150 profiles x 3 reps = 450 runs)
+docker compose up -d redis
+docker compose run --rm -T benchmark-runner python scripts/run_engine_matrix.py --database Redis --profiles-count 150 --repetitions 3
+docker stop nosql-rag-redis
+
+# Run MongoDB matrix (150 profiles x 3 reps = 450 runs)
+docker compose up -d mongodb
+docker compose run --rm -T benchmark-runner python scripts/run_engine_matrix.py --database MongoDB --profiles-count 150 --repetitions 3
+docker stop nosql-rag-mongo
 ```
 
-Integration test suite (requires live database instances):
-```bash
-pytest -v -m integration
+### 4.3 Re-Evaluating Dual Datasets & Latency Regret
+```powershell
+uv run python scripts/run_dual_evaluation.py
 ```
-
-### 4.3.1 Auditing a Saved CRUD Matrix
-
-The audit reads the CSV without changing it and compares run attempts with the
-deterministic 1,800-key Approach B design:
-
-```bash
-python scripts/audit_crud_matrix.py data/raw/crud_benchmark_runs.csv
-```
-
-Pass another CSV path to audit a newly downloaded Google Drive checkpoint. Add
-`--include-keys` to print every missing, failed, and repeated configuration key.
-
-### 4.4 Launching the Interactive Dashboard
-
-```bash
-streamlit run src/nosql_rag/dashboard/app.py
-```
-
-### 4.5 Executing in Google Colab
-
-Follow [docs/colab_execution_guide.md](file:///c:/Users/hiten/nosql-rag-research/docs/colab_execution_guide.md) to run the full benchmark matrix, train models, generate SHAP figures, and validate RAG retrieval on Google Colab with Colab Secrets.
 
 ---
 
-## 5. Research Integrity & Provenance
+## 5. Research Integrity & Data Provenance
 
-This repository enforces strict data provenance guards:
-- `synthetic_demo`: Synthetic illustrative data for unit tests and UI demonstration. **Never** used in research models.
-- `pilot_benchmark`: Verified small-scale runs against live database endpoints.
-- `genuine_benchmark`: Full-matrix experimental measurements under frozen policies.
-- `model_ready`: Clean, validated features and best-store labels derived from genuine runs.
-
-Any attempt to train a research model on `synthetic_demo` rows triggers an explicit `ValueError`.
+This repository enforces strict data provenance tags in `data/raw/crud_benchmark_runs.csv`:
+- `genuine_benchmark` (1,356 rows): Genuine in-container compose-network measurements.
+- `host_port_forward_pilot` (900 rows): Flawed host loopback pilot runs (strictly excluded from research ML models).
+- `remote_cloud_pilot` (8 rows): Historical WAN cloud runs (excluded from local models).
+- `invalid_measurement_artifact` (5 rows): Stalled host measurement artifacts (quarantined).
+- `synthetic_demo`: Synthetic test data. Any attempt to train models on synthetic data raises a `ValueError`.
 
 ---
 
-## 6. Author and Contact
+## 6. Citation & Contact
 
-- **Author:** Hiten Bhurani
-- **Email:** 2023.hiten.bhurani@ves.ac.in
-- **Repository:** [https://github.com/hitenBhurani07/nosql-rag-research](https://github.com/hitenBhurani07/nosql-rag-research)
+- **Author**: Hiten Bhurani
+- **Email**: `2023.hiten.bhurani@ves.ac.in`
+- **Institution**: VES / Research Engineering

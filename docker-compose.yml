@@ -57,19 +57,17 @@ services:
     ports:
       - "9042:9042"
     environment:
-      - MAX_HEAP_SIZE=1G
-      - HEAP_NEWSIZE=256M
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
     deploy:
       resources:
         limits:
-          memory: 2048m
+          memory: 1536m
     healthcheck:
-      test: ["CMD-SHELL", "nodetool status | grep -E '^UN\\s'"]
+      test: ["CMD-SHELL", "nodetool status | grep -E '^UN\\s' || cqlsh -e 'DESCRIBE KEYSPACES;'"]
       interval: 10s
       timeout: 5s
-      retries: 12
-    profiles:
-      - full-only
+      retries: 18
 
   neo4j:
     image: neo4j:5.26-community
@@ -80,16 +78,31 @@ services:
     environment:
       - NEO4J_AUTH=neo4j/nosql_rag_password
       - NEO4J_server_memory_heap_initial__size=512m
-      - NEO4J_server_memory_heap_max__size=1024m
+      - NEO4J_server_memory_heap_max__size=512m
+      - NEO4J_server_memory_pagecache_size=128m
     deploy:
       resources:
         limits:
-          memory: 1536m
+          memory: 1024m
     healthcheck:
       test: ["CMD-SHELL", "cypher-shell -u neo4j -p nosql_rag_password 'RETURN 1'"]
       interval: 5s
       timeout: 4s
-      retries: 10
-    profiles:
-      - full-only
+      retries: 15
+
+  benchmark-runner:
+    image: nosql-rag-client:1.0
+    container_name: nosql-rag-client-runner
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024m
+    volumes:
+      - .:/workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CLIENT_PLACEMENT=in-container-compose-network
+      - CLIENT_LIMITS=cpus=2.0,mem=1024m
+
 

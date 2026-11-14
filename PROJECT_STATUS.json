@@ -1,7 +1,7 @@
 {
   "project_title": "ML-Driven NoSQL Pattern Selection for Retrieval-Augmented Generation Workloads",
   "status": "COMPLETED",
-  "plan": "MINIMAL",
+  "author": "Hiten Bhurani",
   "hardware_environment": {
     "os": "Windows 11 Home",
     "cpu": "Intel Core i5-12500H (12 cores / 16 threads)",
@@ -11,19 +11,24 @@
   },
   "benchmarks": {
     "crud_matrix": {
-      "total_raw_runs": 908,
-      "genuine_local_runs": 900,
+      "total_raw_runs": 2269,
+      "genuine_in_container_runs": 1356,
+      "host_port_forward_pilot_runs": 900,
       "remote_cloud_pilot_runs": 8,
-      "workload_profiles": 150,
-      "engines_benchmarked": [
-        "Redis",
-        "MongoDB"
-      ],
-      "engines_skipped": [
-        "Cassandra",
-        "Neo4j"
-      ],
-      "skip_reason": "Hardware safety under 16GB RAM / 3GB WSL2 limit to prevent host system thrashing and OOM"
+      "invalid_measurement_artifacts": 5,
+      "client_placement": "in-container-compose-network",
+      "concurrency_backend": "multiprocessing (c=4) / sequential (c=1)",
+      "engines_benchmarked": {
+        "Redis": {"profiles": 150, "repetitions": 3, "runs": 450, "errors": 0, "median_p50_ms": 0.090, "median_p95_ms": 0.175},
+        "MongoDB": {"profiles": 150, "repetitions": 3, "runs": 450, "errors": 0, "median_p50_ms": 0.296, "median_p95_ms": 0.584},
+        "Cassandra": {"profiles": 76, "repetitions": 3, "runs": 228, "errors": 0, "median_p50_ms": 0.613, "median_p95_ms": 1.133},
+        "Neo4j": {"profiles": 76, "repetitions": 3, "runs": 228, "errors": 0, "median_p50_ms": 0.902, "median_p95_ms": 3.269}
+      },
+      "label_stability_reps_agreement": {
+        "2_engine_150_profiles": 0.9867,
+        "4_engine_76_profiles": 1.0000
+      },
+      "host_vs_in_container_label_flip_rate": 0.4267
     },
     "qdrant_native_ann": {
       "vectors": 2000,
@@ -32,35 +37,53 @@
       "p50_query_latency_ms": 15.073,
       "p95_query_latency_ms": 26.875
     },
+    "neo4j_graph_traversal": {
+      "nodes": 200,
+      "edges": 600,
+      "queries": 100,
+      "depth": 2,
+      "throughput_ops_sec": 270.39,
+      "p50_latency_ms": 2.989,
+      "p95_latency_ms": 4.095
+    },
     "beir_scifact_rag": {
       "dataset": "scifact",
-      "queries_evaluated": 50,
-      "recall_at_10": 0.872,
-      "ndcg_at_10": 0.7384,
-      "mrr": 0.7047
+      "queries_evaluated": 300,
+      "recall_at_10": 0.7833,
+      "ndcg_at_10": 0.6451,
+      "mrr": 0.6047,
+      "p50_query_latency_ms": 15.323,
+      "p95_query_latency_ms": 27.442
     }
   },
   "machine_learning": {
-    "cross_validation": {
-      "folds": 5,
-      "strategy": "StratifiedGroupKFold(groups=base_workload_id)",
-      "random_forest_macro_f1": 0.8245,
-      "gradient_boosting_macro_f1": 0.8166,
-      "decision_tree_macro_f1": 0.7714
+    "analysis_a_2_engine_150_profiles": {
+      "train_workloads": 120,
+      "test_workloads": 30,
+      "test_accuracy": 1.0000,
+      "test_macro_f1": 1.0000,
+      "majority_baseline_macro_f1": 1.0000,
+      "latency_regret": {
+        "oracle_best": 0.0,
+        "ml_recommender": 0.0,
+        "always_redis": 0.0,
+        "always_mongodb": 2.0682
+      }
     },
-    "held_out_test": {
-      "test_workloads": 38,
-      "best_model": "Random Forest",
-      "accuracy": 0.7895,
-      "macro_f1": 0.7871
-    },
-    "latency_regret": {
-      "oracle_best": 0.0,
-      "ml_recommender": 0.0433,
-      "majority_class_baseline": 0.1346,
-      "rule_based_baseline": 0.1408,
-      "random_feasible_baseline": 0.1516,
-      "single_store_mongodb_default": 0.1911
+    "analysis_b_4_engine_76_profiles": {
+      "train_workloads": 60,
+      "test_workloads": 16,
+      "test_accuracy": 1.0000,
+      "test_macro_f1": 1.0000,
+      "majority_baseline_macro_f1": 1.0000,
+      "latency_regret": {
+        "oracle_best": 0.0,
+        "ml_recommender": 0.0,
+        "always_redis": 0.0,
+        "always_mongodb": 2.6439,
+        "always_cassandra": 5.7610,
+        "always_neo4j": 17.7067
+      }
     }
   }
 }

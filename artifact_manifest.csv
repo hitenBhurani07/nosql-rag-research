@@ -1,18 +1,21 @@
 path,description,type,provenance,size_bytes,exists
-data/raw/crud_benchmark_runs.csv,Raw CRUD benchmark runs (900 genuine + 8 cloud pilot),dataset,experimental,332140,True
-data/processed/labelled_workloads.csv,150 derived ground-truth labels for ML training,dataset,derived,22535,True
-results/models/best_nosql_recommender.joblib,Serialized Random Forest recommendation model,model,trained_artifact,1007947,True
-results/benchmarks/qdrant_ann_runs.json,Qdrant native ANN benchmark results,benchmark,experimental,540,True
-results/benchmarks/beir_scifact_qdrant_results.json,BEIR SciFact RAG retrieval evaluation results,benchmark,experimental,567,True
-reports/tables/model_comparison.csv,Model comparison metrics across classifiers,report,evaluation,220,True
-reports/tables/cv_metrics.csv,5-fold StratifiedGroupKFold cross-validation metrics,report,evaluation,374,True
-reports/tables/latency_regret.csv,Latency regret summary table vs Oracle and baselines,report,evaluation,544,True
-reports/figures/confusion_matrix.png,Test set confusion matrix plot,figure,evaluation,40837,True
-reports/figures/latency_regret.png,Latency regret comparison boxplot,figure,evaluation,72798,True
-reports/figures/shap_summary.png,SHAP feature importance beeswarm summary plot,figure,explainability,125553,True
-PROJECT_STATUS.json,Machine-readable project status and metrics summary,metadata,audit,1907,True
-docker-compose.yml,Local multi-database container configuration with resource caps,infrastructure,configuration,2089,True
-docs/PREFLIGHT.md,Hardware environment and memory threshold preflight record,documentation,audit,1954,True
-docs/DECISIONS.md,Architectural decisions and MINIMAL plan rationale,documentation,audit,3707,True
-docs/AUDIT.md,Workspace audit report,documentation,audit,6424,True
-docs/PROGRESS.md,Phase-by-phase execution progress log,documentation,audit,2195,True
+data/raw/crud_benchmark_runs.csv,Raw CRUD benchmark runs (1356 genuine in-container + 900 host pilot + 8 cloud pilot + 5 artifacts),dataset,experimental,967693,True
+data/processed/workload_profiles.csv,"150 factorial workload profile definitions (75 base x c=1, 4)",dataset,spec,13595,True
+data/processed/aggregated_benchmark_runs.csv,Aggregated median performance metrics per workload and engine,dataset,derived,33129,True
+data/processed/labelled_workloads.csv,150 derived ground-truth labels for ML training,dataset,derived,17482,True
+results/models/best_nosql_recommender.joblib,Serialized best recommendation model pipeline,model,trained_artifact,91147,True
+results/benchmarks/qdrant_ann_runs.json,Qdrant native ANN benchmark results (100% Recall@10),benchmark,experimental,540,True
+results/benchmarks/beir_scifact_qdrant_results.json,Full BEIR SciFact RAG retrieval evaluation on all 300 queries,benchmark,experimental,570,True
+results/benchmarks/neo4j_graph_traversal_runs.json,Neo4j multi-hop graph traversal benchmark results,benchmark,experimental,496,True
+reports/FINAL_REPORT.md,Comprehensive final research report and methodology investigation,report,authoritative_documentation,17950,True
+reports/tables/model_comparison.csv,Model comparison metrics across 2-engine and 4-engine datasets,report,evaluation,653,True
+reports/tables/cv_metrics.csv,GroupKFold cross-validation metrics across classifiers,report,evaluation,647,True
+reports/tables/latency_regret.csv,"Latency regret summary table vs Oracle, Majority, and Always-Store baselines",report,evaluation,1287,True
+reports/figures/latency_regret.png,Latency regret comparison chart,figure,evaluation,77902,True
+reports/figures/shap_summary.png,SHAP feature importance beeswarm summary plot,figure,explainability,123266,True
+PROJECT_STATUS.json,"Machine-readable project status, benchmark metrics, and execution metadata",metadata,audit,2978,True
+docker-compose.yml,Pinned database and benchmark-runner container configuration with resource limits,infrastructure,configuration,2578,True
+Dockerfile.client,Pinned in-container benchmark client container definition,infrastructure,configuration,709,True
+docs/GOAL_STATE.md,"Goal execution state, timestamps, time budget, and step log",documentation,audit,2264,True
+docs/PROGRESS.md,Phase-by-phase execution progress log,documentation,audit,2217,True
+docs/DECISIONS.md,"Architectural decisions, network latency resolution, and hardware safety rationale",documentation,audit,3757,True
