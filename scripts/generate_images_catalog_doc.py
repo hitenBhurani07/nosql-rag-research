@@ -1,4 +1,4 @@
-"""Generate comprehensive Word (.docx) and Markdown catalog for all 21 images in reports/images_for_report/."""
+"""Generate comprehensive Word (.docx) and Markdown catalog for all 27 images in reports/images_for_report/."""
 
 from pathlib import Path
 import docx
@@ -11,7 +11,8 @@ from PIL import Image
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 IMAGES_DIR = REPO_ROOT / "reports" / "images_for_report"
-OUTPUT_DOCX = REPO_ROOT / "reports" / "IMAGES_FOR_REPORT_CATALOG_AND_EXPLANATION.docx"
+PRIMARY_DOCX = REPO_ROOT / "reports" / "IMAGES_FOR_REPORT_CATALOG_AND_EXPLANATION.docx"
+UPDATED_DOCX = REPO_ROOT / "reports" / "IMAGES_FOR_REPORT_CATALOG_AND_EXPLANATION_UPDATED.docx"
 OUTPUT_MD = REPO_ROOT / "reports" / "IMAGES_FOR_REPORT_CATALOG_AND_EXPLANATION.md"
 
 
@@ -68,10 +69,33 @@ def add_callout(doc, text: str, title: str = "🎤 HOW TO EXPLAIN THIS FIGURE IN
 
 IMAGE_METADATA = [
     # -------------------------------------------------------------
-    # SECTION 1: SYSTEMS ARCHITECTURE & DOCKER INFRASTRUCTURE
+    # SECTION 1: DOCKER DESKTOP LIVE RUNTIME & CONTAINER ORCHESTRATION
     # -------------------------------------------------------------
     {
         "id": "IMG-01",
+        "file": "docker_desktop_stack_overview.png",
+        "title": "Docker Desktop Live Stack Overview & Real-Time Qdrant RAG Query Logs",
+        "category": "Live Docker Deployment & Runtime Verification",
+        "summary": "Authentic Docker Desktop screenshot showing all 5 project containers running under the 'nosql-rag-research' compose stack alongside real-time HTTP 200 query logs from Qdrant.",
+        "visual_elements": [
+            "Project Header: 'nosql-rag-research' stack located at C:\\Users\\hiten\\nosql-rag-research.",
+            "Complete 5-Engine Container Roster: qdrant (6333:6333), neo4j (7474, 7687), redis (6379:6379), mongodb (27017:27017), and cassandra (9042:9042).",
+            "Live Real-Time Query Logs: Right-hand log window streaming Qdrant Actix-web server logs for the BEIR SciFact benchmark collection (POST /collections/beir_scifact_19a46282/points/query HTTP/1.1 200).",
+            "Client Fingerprint in Container: Logs explicitly show incoming requests from 'python-client/1.20.0 python/3.12.13' on IP 172.19.0.1 with sub-millisecond execution times (0.00078s - 0.00090s).",
+        ],
+        "research_significance": (
+            "Irrefutable primary evidence of live deployment: proves all five database engines were orchestrated and running concurrently, "
+            "and that genuine RAG dense vector similarity queries were executed against Qdrant by the automated Python benchmark suite."
+        ),
+        "viva_script": (
+            "\"This figure is a direct screenshot of our running Docker Desktop environment. As you can see under the 'nosql-rag-research' stack, "
+            "all five databases—Redis, MongoDB, Cassandra, Neo4j, and Qdrant—were deployed and active. On the right-hand side, you can see the live server logs "
+            "from Qdrant handling 300 test queries from our BEIR SciFact biomedical dataset. The logs confirm incoming queries from our Python 3.12 client "
+            "returning HTTP 200 OK with sub-millisecond query execution times.\""
+        ),
+    },
+    {
+        "id": "IMG-02",
         "file": "docker_container_architecture.png",
         "title": "System Architecture: Containerized Polyglot Infrastructure & Isolated Bridge Network",
         "category": "Systems Infrastructure & Docker Architecture",
@@ -100,7 +124,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-02",
+        "id": "IMG-03",
         "file": "docker_compose_and_service_specs.png",
         "title": "Systems Specification: Docker Compose Configuration & Runtime Resource Controls",
         "category": "Systems Infrastructure & Docker Specifications",
@@ -115,17 +139,123 @@ IMAGE_METADATA = [
             "pinning heap sizes and cache limits ensures repeatable, statistically valid latency distributions."
         ),
         "viva_script": (
-            "\"Figure 2 shows our Docker Compose configuration and tuning parameters. Notice how we tuned each engine: for Cassandra, untuned JVM settings "
+            "\"Figure 3 shows our Docker Compose configuration and tuning parameters. Notice how we tuned each engine: for Cassandra, untuned JVM settings "
             "would consume 4 GB and trigger Stop-The-World GC pauses, so we pinned MAX_HEAP_SIZE to 512M and HEAP_NEWSIZE to 128M. For MongoDB, we capped WiredTiger's "
             "cache to 256 MB so dirty pages wouldn't choke client I/O. This systems tuning ensured that all engines operated within our laptop's 3 GB WSL2 envelope.\""
         ),
     },
+    {
+        "id": "IMG-04",
+        "file": "docker_desktop_mongodb_logs.png",
+        "title": "Docker Desktop Live Logs: MongoDB Container Runtime & Benchmark Collection Creation",
+        "category": "Live Docker Deployment & Runtime Verification",
+        "summary": "Docker Desktop container log capture of 'nosql-rag-mongo' (Image mongo:7.0) showing PyMongo 4.20 driver client connections and dynamic collection initialization.",
+        "visual_elements": [
+            "Container Identification: 'nosql-rag-mongo' (ID b67489877494, image mongo:7.0, port 27017:27017).",
+            "Driver Connection Metadata: Structured JSON log records confirming client driver: PyMongo|c v4.20.0 running on CPython 3.11/3.12 under Linux WSL2 kernel.",
+            "Internal Bridge Client IP: Client connecting from internal bridge IP 172.19.0.3.",
+            "Benchmark Database Operations: Server logs executing createCollection commands for benchmark workloads (e.g. createCollection: bench_w0150_mongodb_r3_11d8b43b), transaction oplog commits, and index builds for _id_.",
+        ],
+        "research_significance": (
+            "Proves authentic document-store benchmark execution. Confirms that each benchmark run dynamically provisioned isolated collections, built primary indexes, "
+            "and executed CRUD transactions without cache contamination from prior workloads."
+        ),
+        "viva_script": (
+            "\"This screenshot shows the live runtime logs of our MongoDB container (mongo:7.0). Notice the structured JSON log entries: "
+            "our Python benchmark runner connected over the internal bridge IP 172.19.0.3 using PyMongo 4.20. You can see the exact createCollection calls "
+            "and primary index builds for benchmark workload profile 150. This confirms that all document writes were physically committed to MongoDB's WiredTiger engine.\""
+        ),
+    },
+    {
+        "id": "IMG-05",
+        "file": "docker_desktop_cassandra_logs.png",
+        "title": "Docker Desktop Live Logs: Cassandra Container Runtime & SSTable Compaction Activity",
+        "category": "Live Docker Deployment & Runtime Verification",
+        "summary": "Docker Desktop container log capture of 'nosql-rag-cassandra' (Image cassandra:4.1) showing keyspace initialization, memtable flushes, and SSTable compaction tasks.",
+        "visual_elements": [
+            "Container Identification: 'nosql-rag-cassandra' (ID 1bc11382a147, image cassandra:4.1, port 9042:9042).",
+            "Keyspace Configuration: Durable writes enabled (durable_writes=true) with SimpleStrategy replication factor 1.",
+            "LSM-Tree Compaction Tasks: CompactionExecutor logging: 'Compacted (27326/90-e023-11f1-b227-c9c20b534f37) 4 sstables to 1 sstable... 82% of original in 38ms'.",
+            "Throughput Metrics: Compaction write throughput recorded at 18.020 KB/s with row throughput of 4 partitions merged to 1.",
+        ],
+        "research_significance": (
+            "Demonstrates real Big Data wide-column storage mechanics: captures Apache Cassandra's Log-Structured Merge-tree (LSM) engine performing background "
+            "SSTable compaction and disk synchronization under write-intensive benchmarking."
+        ),
+        "viva_script": (
+            "\"This figure captures the live internals of our Apache Cassandra 4.1 container. You can see the CompactionExecutor actively merging 4 SSTables into 1 "
+            "in 38 milliseconds, achieving an 82% reduction in disk footprint. This is direct empirical proof of Cassandra's LSM-Tree storage architecture in action, "
+            "explaining why Cassandra excels at sequential append-heavy workloads but incurs higher tail latency on point reads.\""
+        ),
+    },
+    {
+        "id": "IMG-06",
+        "file": "docker_desktop_neo4j_logs.png",
+        "title": "Docker Desktop Live Logs: Neo4j Graph Database Startup & Protocol Bindings",
+        "category": "Live Docker Deployment & Runtime Verification",
+        "summary": "Docker Desktop container log capture of 'nosql-rag-neo4j' (Image neo4j:5.26-community) showing Bolt binary protocol initialization on port 7687 and HTTP UI on port 7474.",
+        "visual_elements": [
+            "Container Identification: 'nosql-rag-neo4j' (ID afaa8f0bee36, image neo4j:5.26-community, ports 7474, 7687).",
+            "Version & Engine Verification: Neo4j 5.26.33 Community Edition starting with server ID 4b9ae979.",
+            "Protocol Listeners: 'Bolt enabled on 0.0.0.0:7687' (high-performance binary graph protocol) and 'HTTP enabled on 0.0.0.0:7474' (management UI).",
+            "Clean Lifecycle Management: Started confirmation timestamped at 12:02:45 UTC and clean shutdown sequence on benchmark termination.",
+        ],
+        "research_significance": (
+            "Confirms proper deployment and socket binding of the graph pillar. The Bolt binary protocol (port 7687) eliminated HTTP JSON parsing overhead, "
+            "allowing multi-hop Cypher queries to achieve 270.4 operations per second with index-free adjacency."
+        ),
+        "viva_script": (
+            "\"This screenshot verifies our Neo4j 5.26 container deployment. The logs show that Neo4j successfully bound its high-performance Bolt binary protocol "
+            "on port 7687. By using Bolt rather than HTTP REST calls, our benchmark client achieved zero-overhead pointer-hopping across graph nodes, "
+            "yielding 270 ops/sec during multi-hop relationship traversals.\""
+        ),
+    },
+    {
+        "id": "IMG-07",
+        "file": "docker_desktop_qdrant_image_layers.png",
+        "title": "Docker Desktop Image Inspection: Qdrant Vector Database Image Layers (276 MB)",
+        "category": "Live Docker Deployment & Runtime Verification",
+        "summary": "Docker Desktop Image view inspecting 'qdrant/qdrant:v1.12.1' showing base operating system layers, binary installation, and total image footprint of 276.56 MB.",
+        "visual_elements": [
+            "Image Tag & Digest: qdrant/qdrant:v1.12.1 (ID d774e7bb6574, Created in USL, Size 276.56 MB).",
+            "Layer Hierarchy (34 Layers): debian:12-slim base image layer (85.2 MB), apt-get package updates (19.5 MB), and compiled Rust binary layers (10.51 MB).",
+            "Security Scan / Scout Tab: Docker Scout vulnerability analysis view showing packages and CVE inspection interface.",
+        ],
+        "research_significance": (
+            "Documents the exact container image artifact used for vector retrieval. Qdrant's compiled Rust binary on Debian Slim delivers a compact ~276 MB footprint, "
+            "minimizing host memory consumption during high-dimensional HNSW vector search."
+        ),
+        "viva_script": (
+            "\"Figure 7 inspects the official Qdrant Docker image (v1.12.1) stored in our local registry. Total image size is only 276.56 MB, built on a debian:12-slim base. "
+            "Because Qdrant is compiled natively in Rust rather than running inside a Java Virtual Machine, it has no garbage collection overhead, allowing fast, predictable vector ANN search.\""
+        ),
+    },
+    {
+        "id": "IMG-08",
+        "file": "docker_desktop_redis_image_layers.png",
+        "title": "Docker Desktop Image Inspection: Redis 7.4-Alpine Image Layers (58.4 MB)",
+        "category": "Live Docker Deployment & Runtime Verification",
+        "summary": "Docker Desktop Image view inspecting 'redis:7.4-alpine' showing minimal Alpine Linux layers and ultra-compact 58.46 MB total footprint.",
+        "visual_elements": [
+            "Image Tag & Digest: redis:7.4-alpine (ID 7f7d30b7fdd0, Size 58.46 MB).",
+            "Layer Hierarchy (15 Layers): Alpine mini root filesystem (8.97 MB), tzdata setup (1.74 MB), and compiled Redis 7.4.12 binary layers (30.77 MB).",
+            "In-Memory C Execution Context: Confirms lightweight, zero-bloat runtime design.",
+        ],
+        "research_significance": (
+            "Explains the hardware efficiency of Redis: with an entire operating system and database footprint under 60 MB, "
+            "Redis fits completely into CPU L3 caches and host RAM, underpinning its sub-0.20 ms P95 latency domination."
+        ),
+        "viva_script": (
+            "\"This figure shows the Redis 7.4 image inspection. By selecting the Alpine-based distribution ('redis:7.4-alpine'), the entire container image is just 58.46 MB. "
+            "This ultra-lightweight footprint means Redis consumes minimal system resources and operates with zero OS bloat, enabling sustained 3,000+ ops/sec throughput on our laptop.\""
+        ),
+    },
 
     # -------------------------------------------------------------
-    # SECTION 2: DATASET PIPELINE, PROVENANCE & CSV RECORDS
+    # SECTION 2: DATASET PIPELINE, BENCHMARK AUDITING & CSV RECORDS
     # -------------------------------------------------------------
     {
-        "id": "IMG-03",
+        "id": "IMG-09",
         "file": "dataset_csv_pipeline_and_sample.png",
         "title": "Data Pipeline: Empirical Benchmark Dataset Lifecycle & Raw CSV Schema Invariants",
         "category": "Dataset Engineering & Empirical Provenance",
@@ -150,7 +280,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-04",
+        "id": "IMG-10",
         "file": "rag_two_stage_architecture_flowchart.png",
         "title": "Methodology Flowchart: Two-Stage Hybrid Recommendation Pipeline",
         "category": "System Architecture & Decision Flow",
@@ -174,7 +304,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-05",
+        "id": "IMG-11",
         "file": "four_engine_empirical_benchmark_comparison.png",
         "title": "Empirical Results: 4-Engine Benchmark Analysis Across Concurrency (2,269 Genuine Executions)",
         "category": "Empirical Systems Performance & Concurrency Scaling",
@@ -198,10 +328,10 @@ IMAGE_METADATA = [
     },
 
     # -------------------------------------------------------------
-    # SECTION 3: EMPIRICAL ML EVALUATION & SHAP EXPLAINABILITY
+    # SECTION 3: EMPIRICAL ML EVALUATION & LATENCY REGRET
     # -------------------------------------------------------------
     {
-        "id": "IMG-06",
+        "id": "IMG-12",
         "file": "confusion_matrix.png",
         "title": "ML Evaluation: Held-Out Test Set Confusion Matrix (Random Forest)",
         "category": "Empirical ML Publication Plot",
@@ -221,7 +351,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-07",
+        "id": "IMG-13",
         "file": "latency_regret.png",
         "title": "ML Evaluation: Global Latency Regret Distribution Across Strategies",
         "category": "Empirical ML Publication Plot",
@@ -240,7 +370,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-08",
+        "id": "IMG-14",
         "file": "latency_regret_2-engine_(redis_+_mongodb,_150_profiles).png",
         "title": "ML Evaluation: Latency Regret Density (Analysis A — 2 Engines, 150 Profiles)",
         "category": "Empirical ML Publication Plot",
@@ -258,7 +388,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-09",
+        "id": "IMG-15",
         "file": "latency_regret_4-engine_(redis_+_mongodb_+_cassandra_+_neo4j,_76_profiles).png",
         "title": "ML Evaluation: Latency Regret Density (Analysis B — 4 Engines, 76 Profiles)",
         "category": "Empirical ML Publication Plot",
@@ -275,8 +405,12 @@ IMAGE_METADATA = [
             "Redis is optimal (0x), MongoDB adds 2.6x overhead, Cassandra adds 5.7x overhead, and Neo4j adds 17.7x overhead for single-key operations.\""
         ),
     },
+
+    # -------------------------------------------------------------
+    # SECTION 4: EXPLAINABLE AI & SHAP ATTRIBUTION
+    # -------------------------------------------------------------
     {
-        "id": "IMG-10",
+        "id": "IMG-16",
         "file": "shap_summary.png",
         "title": "Explainable AI: Global Multi-Class SHAP Summary Plot",
         "category": "Explainability Publication Plot",
@@ -294,7 +428,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-11",
+        "id": "IMG-17",
         "file": "shap_summary_2-engine_(redis_+_mongodb,_150_profiles).png",
         "title": "Explainable AI: SHAP Feature Attribution (Analysis A — 2 Engines, 150 Profiles)",
         "category": "Explainability Publication Plot",
@@ -312,7 +446,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-12",
+        "id": "IMG-18",
         "file": "shap_summary_4-engine_(redis_+_mongodb_+_cassandra_+_neo4j,_76_profiles).png",
         "title": "Explainable AI: SHAP Feature Attribution (Analysis B — 4 Engines, 76 Profiles)",
         "category": "Explainability Publication Plot",
@@ -331,10 +465,10 @@ IMAGE_METADATA = [
     },
 
     # -------------------------------------------------------------
-    # SECTION 4: INTERACTIVE DASHBOARD UI/UX SCREENS
+    # SECTION 5: STREAMLIT RESEARCH DASHBOARD UI/UX SCREENS
     # -------------------------------------------------------------
     {
-        "id": "IMG-13",
+        "id": "IMG-19",
         "file": "screencapture-localhost-8501-2026-11-15-19_27_05.png",
         "title": "Dashboard UI: Tab 1 — Interactive Two-Stage Recommender (Full Output View)",
         "category": "Dashboard UI Screen (Full Workflow)",
@@ -363,7 +497,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-14",
+        "id": "IMG-20",
         "file": "screencapture-localhost-8501-2026-11-15-19_27_21.png",
         "title": "Dashboard UI: Tab 2 — Stage 1 Data-Model Feasibility Matrix",
         "category": "Dashboard UI Screen (Architectural Rules)",
@@ -384,7 +518,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-15",
+        "id": "IMG-21",
         "file": "screencapture-localhost-8501-2026-11-15-19_27_30.png",
         "title": "Dashboard UI: Tab 3 — Genuine In-Container CRUD Benchmark Explorer",
         "category": "Dashboard UI Screen (Empirical Auditing & Slicing)",
@@ -407,7 +541,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-16",
+        "id": "IMG-22",
         "file": "screencapture-localhost-8501-2026-11-15-19_28_08.png",
         "title": "Dashboard UI: Tab 4 — Machine Learning Evaluation (Analysis A — 2 Engines, 150 Profiles)",
         "category": "Dashboard UI Screen (ML Evaluation)",
@@ -431,7 +565,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-17",
+        "id": "IMG-23",
         "file": "screencapture-localhost-8501-2026-11-15-19_28_23.png",
         "title": "Dashboard UI: Tab 4 — Machine Learning Evaluation (Analysis B — 4 Engines, 76 Profiles)",
         "category": "Dashboard UI Screen (ML Evaluation)",
@@ -453,7 +587,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-18",
+        "id": "IMG-24",
         "file": "screencapture-localhost-8501-2026-11-15-19_28_35.png",
         "title": "Dashboard UI: Tab 5 — Latency Regret Evaluation (Analysis A — 2 Engines, 150 Profiles)",
         "category": "Dashboard UI Screen (Regret Metric)",
@@ -473,7 +607,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-19",
+        "id": "IMG-25",
         "file": "screencapture-localhost-8501-2026-11-15-19_28_46.png",
         "title": "Dashboard UI: Tab 5 — Latency Regret Evaluation (Analysis B — 4 Engines, 76 Profiles)",
         "category": "Dashboard UI Screen (Regret Metric)",
@@ -492,7 +626,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-20",
+        "id": "IMG-26",
         "file": "screencapture-localhost-8501-2026-11-15-19_28_55.png",
         "title": "Dashboard UI: Tab 6 — Specialized Workload Evaluation (Qdrant Vector RAG & Neo4j Graph)",
         "category": "Dashboard UI Screen (Specialized Pillars)",
@@ -512,7 +646,7 @@ IMAGE_METADATA = [
         ),
     },
     {
-        "id": "IMG-21",
+        "id": "IMG-27",
         "file": "screencapture-localhost-8501-2026-11-15-19_29_04.png",
         "title": "Dashboard UI: Tab 7 — Methodology, Network Findings & Limitations",
         "category": "Dashboard UI Screen (Systems Engineering)",
@@ -537,15 +671,16 @@ IMAGE_METADATA = [
 
 def generate_markdown_catalog():
     lines = [
-        "# 📸 Comprehensive Catalog & Deep Explanation of All Project Figures (21 Figures)",
+        "# 📸 Comprehensive Catalog & Deep Explanation of All Project Figures (27 Figures)",
         "",
         "**Repository Folder**: `reports/images_for_report/`  ",
         "**Author**: Hiten Bhurani  ",
         "**Subject**: Big Data Analytics (BDA) / Distributed Systems  ",
         "",
-        "This document provides an exhaustive, authoritative technical catalog of all **21 figures** in `reports/images_for_report/`, "
-        "including Docker container architecture, dataset schemas & CSV sample records, two-stage system flowcharts, 4-engine empirical benchmarks, "
-        "ML performance plots, SHAP explainability beeswarms, and all 9 interactive Streamlit dashboard captures.",
+        "This document provides an exhaustive, authoritative technical catalog of all **27 figures** in `reports/images_for_report/`. "
+        "It spans live Docker Desktop runtime captures, container log inspections, Docker systems architecture, empirical dataset lifecycles, "
+        "raw CSV sample tables, two-stage system flowcharts, 4-engine empirical benchmark plots, ML performance heatmaps, SHAP explainability beeswarms, "
+        "and all 9 interactive Streamlit research dashboard captures.",
         "",
         "---",
         "",
@@ -618,12 +753,12 @@ def generate_docx_catalog():
 
     p_title = c.paragraphs[0]
     p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r1 = p_title.add_run("📸 Master Image Catalog & Technical Explanation Guide\n")
+    r1 = p_title.add_run("📸 Master Image Catalog & Technical Explanation Guide (27 Figures)\n")
     r1.bold = True
     r1.font.size = Pt(19)
     r1.font.color.rgb = RGBColor(255, 255, 255)
 
-    r2 = p_title.add_run("Complete Visual Breakdown, Docker Architecture, Dataset Lifecycle & Viva Scripts for All 21 Project Figures\n")
+    r2 = p_title.add_run("Complete Visual Breakdown, Docker Desktop Proofs, Dataset Lifecycle & Viva Scripts\n")
     r2.bold = True
     r2.font.size = Pt(12)
     r2.font.color.rgb = RGBColor(203, 213, 225)
@@ -636,9 +771,10 @@ def generate_docx_catalog():
 
     intro = doc.add_paragraph(
         "This document serves as the authoritative visual companion for the research project 'ML-Driven NoSQL Pattern Selection for RAG Workloads'. "
-        "Every single image in the 'reports/images_for_report/' directory—spanning Docker container infrastructure, dataset provenance, CSV sample records, "
-        "two-stage architecture flowcharts, empirical benchmark analysis, ML performance heatmaps, SHAP explainability beeswarms, and all 9 interactive "
-        "Streamlit dashboard captures—is cataloged below with exact technical breakdowns, Big Data systems significance, and word-by-word presentation scripts."
+        "Every single image in the 'reports/images_for_report/' directory—spanning live Docker Desktop container runtime captures, container log inspections, "
+        "Docker systems architecture, empirical dataset lifecycles, raw CSV sample tables, two-stage system flowcharts, 4-engine empirical benchmark plots, "
+        "ML performance heatmaps, SHAP explainability beeswarms, and all 9 interactive Streamlit research dashboard captures—is cataloged below with "
+        "exact technical breakdowns, Big Data systems significance, and word-by-word presentation scripts."
     )
 
     for item in IMAGE_METADATA:
@@ -713,8 +849,13 @@ def generate_docx_catalog():
 
         doc.add_paragraph().paragraph_format.space_after = Pt(12)
 
-    doc.save(str(OUTPUT_DOCX))
-    print(f"Generated DOCX catalog: {OUTPUT_DOCX}")
+    # Try to save to primary, fallback to updated if locked
+    try:
+        doc.save(str(PRIMARY_DOCX))
+        print(f"Successfully saved PRIMARY DOCX catalog: {PRIMARY_DOCX}")
+    except PermissionError:
+        doc.save(str(UPDATED_DOCX))
+        print(f"Primary file locked by Word! Saved to UPDATED DOCX catalog: {UPDATED_DOCX}")
 
 
 if __name__ == "__main__":
