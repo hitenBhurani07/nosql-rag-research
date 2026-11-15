@@ -63,4 +63,7 @@ stage_snippet.py
 full_send_msg.json
 send_to_subagent.txt
 data/sample/scifact*
+~$*.docx
+~$*.xlsx
+~$*.pptx
 
